@@ -1,0 +1,6 @@
+{
+  "name": "LV Sports Carnival",
+  "description": "High-impact 75\" TV dashboard and admin portal for company sports event featuring live leaderboards, team rosters, schedules, and real-time announcements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

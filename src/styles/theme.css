@@ -1,0 +1,124 @@
+/* Modern Fighting Video Game Theme (LV Sports Carnival) */
+
+:root {
+  --fg-canvas-bg: #070A1E;
+  --fg-panel-bg: rgba(13, 17, 41, 0.9);
+  --fg-cyan: #00F0FF;
+  --fg-violet: #A855F7;
+  --fg-orange: #F59E0B;
+  --fg-crimson: #EF4444;
+  --fg-gold: #FBBF24;
+}
+
+/* Base Body with Deep Indigo/Navy Gradient */
+body {
+  background: radial-gradient(circle at 50% 20%, #12183A 0%, #070A1E 60%, #04050F 100%);
+  color: #F8FAFC;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* Title Font */
+.fg-title-font {
+  font-family: 'Rajdhani', 'Outfit', sans-serif;
+  letter-spacing: 0.08em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.fg-heading-font {
+  font-family: 'Rajdhani', 'Outfit', sans-serif;
+  letter-spacing: 0.05em;
+  font-weight: 800;
+}
+
+.fg-mono-font {
+  font-family: 'Rajdhani', 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* Glossy Neon Angled Panels (Fighting Game Style) */
+.fg-card {
+  background: linear-gradient(135deg, rgba(20, 26, 62, 0.85) 0%, rgba(10, 13, 34, 0.95) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  box-shadow: 
+    0 10px 30px -5px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 15px rgba(0, 240, 255, 0.08);
+  backdrop-filter: blur(12px);
+  position: relative;
+}
+
+.fg-card-amber {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.fg-card-cyan {
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.fg-card-violet {
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.fg-card-crimson {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Chamfered Angled Cuts */
+.fg-chamfer {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.fg-chamfer-sm {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+/* Health Bar Points Gauge */
+.fg-healthbar-track {
+  height: 20px;
+  background: rgba(5, 7, 20, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.fg-healthbar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3B82F6 0%, #06B6D4 40%, #10B981 70%, #F59E0B 100%);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.7);
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Versus Badge Screen Cut */
+.fg-vs-badge {
+  clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
+}
+
+/* Smooth Slide Flash */
+@keyframes fg-slide-flash {
+  0% { opacity: 0.35; }
+  100% { opacity: 0; }
+}
+
+.fg-flash-effect {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.25) 0%, rgba(168, 85, 247, 0.15) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 50;
+  animation: fg-slide-flash 0.35s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fg-flash-effect {
+    animation: none !important;
+  }
+}
