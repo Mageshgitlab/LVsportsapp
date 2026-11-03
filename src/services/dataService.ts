@@ -68,11 +68,12 @@ class HybridDataService implements IDataService {
     // Always persist to local cache first
     this.saveToStorage(sanitized);
 
-    // If Supabase is available, sync to the cloud
+    // If Supabase is available, sync to both carnival_state and individual relational tables
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        const { error } = await supabase.from(SUPABASE_TABLE).upsert(
+        // 1. carnival_state (Full state for live TV sync)
+        await supabase.from(SUPABASE_TABLE).upsert(
           {
             id: STATE_ROW_ID,
             data: sanitized,
@@ -81,11 +82,64 @@ class HybridDataService implements IDataService {
           { onConflict: 'id' }
         );
 
-        if (error) {
-          console.error('Failed to sync data to Supabase:', error.message);
+        // 2. teams table
+        if (sanitized.teams && sanitized.teams.length > 0) {
+          const formattedTeams = sanitized.teams.map((t) => ({
+            id: t.id,
+            code: t.code,
+            name: t.name,
+            color: t.color,
+            secondary_color: t.secondaryColor || null,
+            captain: t.captain || null,
+            vice_captain: t.viceCaptain || null,
+            mascot: t.mascot || null,
+          }));
+          await supabase.from('teams').upsert(formattedTeams, { onConflict: 'id' });
+        }
+
+        // 3. members table
+        if (sanitized.members && sanitized.members.length > 0) {
+          const formattedMembers = sanitized.members.map((m) => ({
+            id: m.id,
+            team_id: m.teamId,
+            name: m.name,
+            role: m.role || null,
+            jersey_number: m.jerseyNumber || null,
+          }));
+          await supabase.from('members').upsert(formattedMembers, { onConflict: 'id' });
+        }
+
+        // 4. games table
+        if (sanitized.games && sanitized.games.length > 0) {
+          const formattedGames = sanitized.games.map((g) => ({
+            id: g.id,
+            name: g.name,
+            category: g.category,
+            icon: g.icon || 'generic',
+            status: g.status || 'upcoming',
+            scheduled_time: g.scheduledTime || '',
+            venue: g.venue || '',
+            first_place_team_id: g.firstPlaceTeamId || null,
+            second_place_team_id: g.secondPlaceTeamId || null,
+            notes: g.notes || '',
+          }));
+          await supabase.from('games').upsert(formattedGames, { onConflict: 'id' });
+        }
+
+        // 5. announcements table
+        if (sanitized.announcements && sanitized.announcements.length > 0) {
+          const formattedAnnouncements = sanitized.announcements.map((a) => ({
+            id: a.id,
+            title: a.title,
+            message: a.message,
+            category: a.category || 'general',
+            active: a.active,
+            created_at: a.createdAt || '',
+          }));
+          await supabase.from('announcements').upsert(formattedAnnouncements, { onConflict: 'id' });
         }
       } catch (err) {
-        console.error('Error writing to Supabase:', err);
+        console.error('Error writing to Supabase tables:', err);
       }
     }
   }

@@ -140,7 +140,7 @@ export const AdminLayout: React.FC = () => {
       </header>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-8 overflow-y-auto">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6 pb-32">
         {activeTab === 'teams' && <TeamsTab />}
         {activeTab === 'members' && <MembersTab />}
         {activeTab === 'games' && <GamesTab />}

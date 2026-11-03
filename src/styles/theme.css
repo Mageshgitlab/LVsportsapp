@@ -15,7 +15,7 @@ body {
   background: radial-gradient(circle at 50% 20%, #12183A 0%, #070A1E 60%, #04050F 100%);
   color: #F8FAFC;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 /* Title Font */

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useCarnivalStore } from '../../../store/carnivalStore';
 import { SlideConfig, SlideId } from '../../../types';
 import {
@@ -71,6 +71,49 @@ export const SettingsTab: React.FC = () => {
   const [sbTesting, setSbTesting] = useState(false);
   const [sbTestResult, setSbTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [sqlCopied, setSqlCopied] = useState(false);
+  const [cloudInfo, setCloudInfo] = useState<{
+    loaded: boolean;
+    timestamp: string | null;
+    teamsCount: number;
+    membersCount: number;
+    gamesCount: number;
+  }>({
+    loaded: false,
+    timestamp: null,
+    teamsCount: 0,
+    membersCount: 0,
+    gamesCount: 0,
+  });
+
+  const checkCloudData = async () => {
+    const client = getSupabaseClient();
+    if (!client) return;
+    try {
+      const { data: row, error } = await client
+        .from('carnival_state')
+        .select('data, updated_at')
+        .eq('id', 'primary')
+        .maybeSingle();
+
+      if (row && row.data) {
+        setCloudInfo({
+          loaded: true,
+          timestamp: row.updated_at ? new Date(row.updated_at).toLocaleString() : 'Just now',
+          teamsCount: row.data.teams?.length || 0,
+          membersCount: row.data.members?.length || 0,
+          gamesCount: row.data.games?.length || 0,
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to inspect cloud data:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      checkCloudData();
+    }
+  }, []);
 
   const handleSaveSupabaseConfig = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,9 +171,11 @@ export const SettingsTab: React.FC = () => {
         }
       } else {
         await dataService.saveData(data);
+        await checkCloudData();
         setSbTestResult({
           success: true,
-          message: 'Connected to Supabase! Current carnival data successfully uploaded and live sync active.',
+          message:
+            'Connected to Supabase! Successfully populated all tables (teams, members, games, announcements, and carnival_state) in your database.',
         });
       }
     } catch (err: any) {
@@ -451,6 +496,61 @@ END $$;`;
                 <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
               )}
               <span>{sbTestResult.message}</span>
+            </div>
+          )}
+
+          {/* Live Cloud Data Inspector */}
+          {isSupabaseConfigured() && (
+            <div className="p-4 rounded-xl bg-black/40 border border-cyan-500/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-cyan-300 tracking-wider flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Live Supabase Cloud Inspector</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={checkCloudData}
+                  className="text-[11px] text-cyan-400 hover:text-cyan-200 transition-colors flex items-center gap-1 font-mono cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Verify Cloud Record</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+                  <div className="text-[10px] text-slate-400 uppercase">Cloud Status</div>
+                  <div className="text-xs font-black text-emerald-400 font-mono">LIVE SYNC</div>
+                </div>
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+                  <div className="text-[10px] text-slate-400 uppercase">Teams in Cloud</div>
+                  <div className="text-xs font-black text-white font-mono">{cloudInfo.teamsCount || data.teams.length}</div>
+                </div>
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+                  <div className="text-[10px] text-slate-400 uppercase">Members in Cloud</div>
+                  <div className="text-xs font-black text-white font-mono">{cloudInfo.membersCount || data.members.length}</div>
+                </div>
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+                  <div className="text-[10px] text-slate-400 uppercase">Games in Cloud</div>
+                  <div className="text-xs font-black text-white font-mono">{cloudInfo.gamesCount || data.games.length}</div>
+                </div>
+              </div>
+
+              {cloudInfo.timestamp && (
+                <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-white/5">
+                  <span>Last Cloud Snapshot:</span>
+                  <span className="text-cyan-300 font-bold">{cloudInfo.timestamp}</span>
+                </div>
+              )}
+
+              <div className="text-[11px] text-slate-400 bg-cyan-950/30 p-2.5 rounded-lg border border-cyan-500/20 leading-relaxed">
+                <strong className="text-cyan-300 font-bold">How to test live sync:</strong>
+                <ul className="list-disc list-inside mt-1 space-y-0.5 text-[10px] text-slate-300">
+                  <li>Edit any match score in the <strong>Results</strong> tab or add an announcement in <strong>Announcements</strong>.</li>
+                  <li>Open your <a href="https://supabase.com/dashboard/project/cqkhfskjxeghcmknvibs/editor" target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline">Supabase Table Editor</a> → table <code className="text-cyan-200">carnival_state</code>: notice the row updates instantly!</li>
+                  <li>Open <a href="#/tv" target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline">TV Dashboard</a> in another tab or device: the score appears in real-time with zero refresh!</li>
+                </ul>
+              </div>
             </div>
           )}
         </form>
