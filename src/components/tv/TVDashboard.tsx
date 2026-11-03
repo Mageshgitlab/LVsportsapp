@@ -31,14 +31,18 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
   const eligibleSlides = getEligibleSlides(data);
   const slideDuration = data.settings.slideDurationMs || 5000;
 
-  // Track progress fraction for active slide (0 to 1)
+  // Progress fraction for active slide (0 to 1)
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [fixturesProgressRatio, setFixturesProgressRatio] = useState(0);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
   const feedbackTimerRef = useRef<number | null>(null);
 
   // Theme Settings
   const [themeSettings, setThemeSettings] = useState(getStoredThemeSettings());
   const [isFlashing, setIsFlashing] = useState(false);
+
+  const currentSlideConfig = eligibleSlides[activeSlideIndex % Math.max(1, eligibleSlides.length)];
+  const isFixturesSlide = currentSlideConfig?.id === 'fixtures';
 
   useEffect(() => {
     const handleThemeChange = (e: any) => {
@@ -65,7 +69,7 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
       const currentSlide = eligibleSlides[activeSlideIndex % Math.max(1, eligibleSlides.length)];
       if (currentSlide?.id === 'results') {
         tournamentSound.play('victory');
-      } else if (currentSlide?.id === 'schedule') {
+      } else if (currentSlide?.id === 'schedule' || currentSlide?.id === 'fixtures') {
         tournamentSound.play('fight');
       } else {
         tournamentSound.play('round');
@@ -73,9 +77,10 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
     }
   }, [activeSlideIndex, themeSettings.soundEnabled]);
 
-  // Auto-advance slideshow timer (5 seconds default or configured duration)
+  // Auto-advance slideshow timer (yields to FixturesSlide during fixtures rotation)
   useEffect(() => {
     if (isPaused || eligibleSlides.length <= 1) return;
+    if (isFixturesSlide) return; // FixturesSlide handles its own sub-cycle before advancing
 
     const intervalMs = 50; // Smooth progress bar updates
     const interval = setInterval(() => {
@@ -90,11 +95,12 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isPaused, slideDuration, eligibleSlides.length, nextSlide]);
+  }, [isPaused, slideDuration, eligibleSlides.length, nextSlide, isFixturesSlide]);
 
   // Reset elapsed when slide index changes
   useEffect(() => {
     setElapsedMs(0);
+    setFixturesProgressRatio(0);
   }, [activeSlideIndex]);
 
   // Show transient keyboard feedback
@@ -136,13 +142,6 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isEmbedded, isPaused, togglePause, nextSlide, prevSlide, themeSettings.soundEnabled]);
 
-  const currentSlideConfig =
-    eligibleSlides.length > 0
-      ? eligibleSlides[activeSlideIndex % eligibleSlides.length]
-      : null;
-
-  const progressRatio = Math.min(1, elapsedMs / slideDuration);
-
   const content = (
     <div
       className="w-full h-full flex flex-col justify-between relative overflow-hidden select-none bg-[#070A1E] text-slate-100"
@@ -170,7 +169,18 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="w-full h-full"
             >
-              <SlideRenderer slideId={currentSlideConfig.id} />
+              <SlideRenderer
+                slideId={currentSlideConfig.id}
+                isPaused={isPaused}
+                onFixturesComplete={() => {
+                  nextSlide();
+                  setElapsedMs(0);
+                  setFixturesProgressRatio(0);
+                }}
+                onFixturesProgress={(ratio) => {
+                  setFixturesProgressRatio(ratio);
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -193,7 +203,10 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
       </main>
 
       {/* Progress Bar Showing Time Left for Active Slide */}
-      <ProgressBar progressRatio={progressRatio} isPaused={isPaused} />
+      <ProgressBar
+        progressRatio={isFixturesSlide ? fixturesProgressRatio : Math.min(1, elapsedMs / Math.max(1, slideDuration))}
+        isPaused={isPaused}
+      />
 
       {/* Persistent Footer: Scrolling Ticker */}
       <TVFooter />

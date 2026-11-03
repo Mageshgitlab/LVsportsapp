@@ -11,9 +11,17 @@ import { AnnouncementsSlide } from './slides/AnnouncementsSlide';
 
 interface SlideRendererProps {
   slideId: SlideId;
+  isPaused?: boolean;
+  onFixturesComplete?: () => void;
+  onFixturesProgress?: (ratio: number) => void;
 }
 
-export const SlideRenderer: React.FC<SlideRendererProps> = ({ slideId }) => {
+export const SlideRenderer: React.FC<SlideRendererProps> = ({
+  slideId,
+  isPaused = false,
+  onFixturesComplete,
+  onFixturesProgress,
+}) => {
   switch (slideId) {
     case 'hero':
       return <HeroSlide />;
@@ -30,7 +38,13 @@ export const SlideRenderer: React.FC<SlideRendererProps> = ({ slideId }) => {
     case 'schedule':
       return <ScheduleSlide />;
     case 'fixtures':
-      return <FixturesSlide />;
+      return (
+        <FixturesSlide
+          isPaused={isPaused}
+          onComplete={onFixturesComplete}
+          onProgress={onFixturesProgress}
+        />
+      );
     case 'leaderboard':
       return <LeaderboardSlide />;
     case 'results':
