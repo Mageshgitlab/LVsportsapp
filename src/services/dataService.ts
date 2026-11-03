@@ -24,8 +24,8 @@ class LocalStorageDataService implements IDataService {
         
         // Sanitize slides: replace or remove 'leaders' and ensure 'fixtures' exists
         let rawSlides = parsed.settings?.slides || INITIAL_DATA.settings.slides;
-        // Filter out leaders and sponsors
-        rawSlides = rawSlides.filter((s: any) => s.id !== 'leaders' && s.id !== 'sponsors');
+        // Filter out leaders, sponsors, and teams_overview
+        rawSlides = rawSlides.filter((s: any) => s.id !== 'leaders' && s.id !== 'sponsors' && s.id !== 'teams_overview');
         if (!rawSlides.some((s: any) => s.id === 'fixtures')) {
           const scheduleIdx = rawSlides.findIndex((s: any) => s.id === 'schedule');
           const fixturesSlide = { id: 'fixtures' as const, title: 'Carrom Doubles Fixtures', enabled: true, order: 8 };
@@ -33,6 +33,17 @@ class LocalStorageDataService implements IDataService {
             rawSlides.splice(scheduleIdx + 1, 0, fixturesSlide);
           } else {
             rawSlides.push(fixturesSlide);
+          }
+        }
+        // Ensure leaderboard (points table) is the 2nd slide right after hero
+        const lbIdx = rawSlides.findIndex((s: any) => s.id === 'leaderboard');
+        if (lbIdx !== -1 && lbIdx !== 1) {
+          const [lbSlide] = rawSlides.splice(lbIdx, 1);
+          const heroIdx = rawSlides.findIndex((s: any) => s.id === 'hero');
+          if (heroIdx !== -1) {
+            rawSlides.splice(heroIdx + 1, 0, lbSlide);
+          } else {
+            rawSlides.unshift(lbSlide);
           }
         }
         // re-order sequentially

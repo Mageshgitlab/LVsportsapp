@@ -2,16 +2,15 @@ import { CarnivalData, SlideConfig, GameFixtures } from '../types';
 
 export const INITIAL_SLIDES: SlideConfig[] = [
   { id: 'hero', title: 'Welcome & Championship Showcase', enabled: true, order: 1 },
-  { id: 'teams_overview', title: 'Teams Overview', enabled: true, order: 2 },
+  { id: 'leaderboard', title: 'Points Table & Standings', enabled: true, order: 2 },
   { id: 'team_a', title: 'Team A - Pardus', enabled: true, order: 3 },
   { id: 'team_b', title: 'Team B - Falcon Fury', enabled: true, order: 4 },
   { id: 'team_c', title: 'Team C - Stormbreakers', enabled: true, order: 5 },
   { id: 'team_d', title: 'Team D - Tiger Ka Hukum', enabled: true, order: 6 },
   { id: 'schedule', title: 'Games Schedule & Venues', enabled: true, order: 7 },
   { id: 'fixtures', title: 'Carrom Doubles Fixtures', enabled: true, order: 8 },
-  { id: 'leaderboard', title: 'Points Table & Standings', enabled: true, order: 9 },
-  { id: 'results', title: 'Game-Wise Results', enabled: true, order: 10 },
-  { id: 'announcements', title: 'Carnival Announcements', enabled: true, order: 11 },
+  { id: 'results', title: 'Game-Wise Results', enabled: true, order: 9 },
+  { id: 'announcements', title: 'Carnival Announcements', enabled: true, order: 10 },
 ];
 
 export const INITIAL_DATA: CarnivalData = {
