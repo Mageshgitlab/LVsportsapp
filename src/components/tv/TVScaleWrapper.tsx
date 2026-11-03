@@ -22,10 +22,11 @@ export const TVScaleWrapper: React.FC<TVScaleWrapperProps> = ({ children, isInte
       const targetHeight = 1080;
 
       // Scale to fit completely inside viewport while preserving 16:9
-      const scaleX = windowWidth / targetWidth;
-      const scaleY = windowHeight / targetHeight;
-      const newScale = Math.min(scaleX, scaleY);
-      setScale(newScale);
+      const scaleX = targetWidth > 0 && windowWidth > 0 ? windowWidth / targetWidth : 1;
+      const scaleY = targetHeight > 0 && windowHeight > 0 ? windowHeight / targetHeight : 1;
+      const computedScale = Math.min(scaleX, scaleY);
+      const safeScale = Number.isFinite(computedScale) && computedScale > 0.05 ? computedScale : 1;
+      setScale(safeScale);
     };
 
     updateScale();

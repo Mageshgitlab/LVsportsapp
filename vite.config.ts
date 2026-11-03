@@ -3,9 +3,14 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ command, mode }) => {
+  // In development (AI Studio preview dev server), use '/' so localhost:3000 works seamlessly.
+  // In production builds for GitHub Pages (repo LVsportsapp), use '/LVsportsapp/'.
+  const isProd = mode === 'production' || command === 'build';
+  const base = process.env.VITE_BASE || (isProd ? '/LVsportsapp/' : '/');
+
   return {
-    base: './',
+    base,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

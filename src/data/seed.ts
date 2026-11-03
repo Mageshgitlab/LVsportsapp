@@ -12,7 +12,6 @@ export const INITIAL_SLIDES: SlideConfig[] = [
   { id: 'leaderboard', title: 'Points Table & Standings', enabled: true, order: 9 },
   { id: 'results', title: 'Game-Wise Results', enabled: true, order: 10 },
   { id: 'announcements', title: 'Carnival Announcements', enabled: true, order: 11 },
-  { id: 'sponsors', title: 'Partners & Acknowledgements', enabled: true, order: 12 },
 ];
 
 export const INITIAL_DATA: CarnivalData = {

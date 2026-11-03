@@ -81,8 +81,6 @@ export function getEligibleSlides(data: CarnivalData): SlideConfig[] {
     switch (slide.id) {
       case 'announcements':
         return data.announcements.some((a) => a.active);
-      case 'sponsors':
-        return data.sponsors && data.sponsors.length > 0;
       case 'results':
         // Show results if any game has finished or any results assigned, or show games with results
         return data.games.length > 0;

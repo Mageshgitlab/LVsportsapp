@@ -64,8 +64,7 @@ export type SlideId =
   | 'fixtures'
   | 'leaderboard'
   | 'results'
-  | 'announcements'
-  | 'sponsors';
+  | 'announcements';
 
 export interface SlideConfig {
   id: SlideId;

@@ -8,7 +8,6 @@ import { FixturesSlide } from './slides/FixturesSlide';
 import { LeaderboardSlide } from './slides/LeaderboardSlide';
 import { ResultsSlide } from './slides/ResultsSlide';
 import { AnnouncementsSlide } from './slides/AnnouncementsSlide';
-import { SponsorsSlide } from './slides/SponsorsSlide';
 
 interface SlideRendererProps {
   slideId: SlideId;
@@ -38,8 +37,6 @@ export const SlideRenderer: React.FC<SlideRendererProps> = ({ slideId }) => {
       return <ResultsSlide />;
     case 'announcements':
       return <AnnouncementsSlide />;
-    case 'sponsors':
-      return <SponsorsSlide />;
     default:
       return <HeroSlide />;
   }

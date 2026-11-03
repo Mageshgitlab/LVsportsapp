@@ -24,8 +24,8 @@ class LocalStorageDataService implements IDataService {
         
         // Sanitize slides: replace or remove 'leaders' and ensure 'fixtures' exists
         let rawSlides = parsed.settings?.slides || INITIAL_DATA.settings.slides;
-        // Filter out leaders
-        rawSlides = rawSlides.filter((s: any) => s.id !== 'leaders');
+        // Filter out leaders and sponsors
+        rawSlides = rawSlides.filter((s: any) => s.id !== 'leaders' && s.id !== 'sponsors');
         if (!rawSlides.some((s: any) => s.id === 'fixtures')) {
           const scheduleIdx = rawSlides.findIndex((s: any) => s.id === 'schedule');
           const fixturesSlide = { id: 'fixtures' as const, title: 'Carrom Doubles Fixtures', enabled: true, order: 8 };
@@ -34,9 +34,9 @@ class LocalStorageDataService implements IDataService {
           } else {
             rawSlides.push(fixturesSlide);
           }
-          // re-order
-          rawSlides = rawSlides.map((s: any, idx: number) => ({ ...s, order: idx + 1 }));
         }
+        // re-order sequentially
+        rawSlides = rawSlides.map((s: any, idx: number) => ({ ...s, order: idx + 1 }));
 
         const sanitizedSettings = {
           ...INITIAL_DATA.settings,
@@ -51,7 +51,9 @@ class LocalStorageDataService implements IDataService {
           games: Array.isArray(parsed.games) && parsed.games.length > 0 ? parsed.games : INITIAL_DATA.games,
           announcements: Array.isArray(parsed.announcements) ? parsed.announcements : INITIAL_DATA.announcements,
           sponsors: Array.isArray(parsed.sponsors) ? parsed.sponsors : INITIAL_DATA.sponsors,
-          fixtures: parsed.fixtures || INITIAL_DATA.fixtures,
+          fixtures: (parsed.fixtures && Array.isArray(parsed.fixtures.rounds) && parsed.fixtures.rounds.length > 0)
+            ? parsed.fixtures
+            : INITIAL_DATA.fixtures,
         };
       }
     } catch (e) {

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>LV Sports Carnival</title>
+    <script>
+      // Single Page Application redirect for GitHub Pages
+      (function() {
+        var base = '/LVsportsapp';
+        var pathname = window.location.pathname;
+        var relPath = pathname.indexOf(base) === 0 ? pathname.substring(base.length) : pathname;
+        if (!relPath || relPath === '/' || relPath === '/index.html') {
+          window.location.replace(base + '/#/tv');
+        } else {
+          var cleanPath = relPath.replace(/^\/+/, '');
+          window.location.replace(base + '/#/' + cleanPath + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+  </head>
+  <body style="background-color: #070A1E; color: #FFF; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+    <div style="text-align: center;">
+      <h2 style="letter-spacing: 0.1em; text-transform: uppercase;">Redirecting to LV Sports Carnival...</h2>
+    </div>
+  </body>
+</html>
