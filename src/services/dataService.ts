@@ -1,7 +1,10 @@
 import { CarnivalData } from '../types';
 import { INITIAL_DATA } from '../data/seed';
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 
 const STORAGE_KEY = 'lv_sports_carnival_data_v2';
+const SUPABASE_TABLE = 'carnival_state';
+const STATE_ROW_ID = 'primary';
 
 export interface IDataService {
   getData(): Promise<CarnivalData>;
@@ -9,78 +12,86 @@ export interface IDataService {
   resetToDefault(): Promise<CarnivalData>;
   exportJson(data: CarnivalData): string;
   importJson(jsonString: string): CarnivalData;
+  subscribeToChanges?(onUpdate: (data: CarnivalData) => void): () => void;
+  isCloudConnected(): boolean;
 }
 
 /**
- * LocalStorage implementation of IDataService.
- * Can be effortlessly swapped with a FirestoreDataService implementing IDataService.
+ * Hybrid Supabase + LocalStorage Data Service.
+ * Connects to Supabase (Project: cqkhfskjxeghcmknvibs) for live multi-screen syncing,
+ * and maintains local caching for instant loading and offline resiliency.
  */
-class LocalStorageDataService implements IDataService {
+class HybridDataService implements IDataService {
+  private realtimeChannel: any = null;
+
+  isCloudConnected(): boolean {
+    return isSupabaseConfigured();
+  }
+
   async getData(): Promise<CarnivalData> {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as CarnivalData;
-        
-        // Sanitize slides: replace or remove 'leaders' and ensure 'fixtures' exists
-        let rawSlides = parsed.settings?.slides || INITIAL_DATA.settings.slides;
-        // Filter out leaders, sponsors, and teams_overview
-        rawSlides = rawSlides.filter((s: any) => s.id !== 'leaders' && s.id !== 'sponsors' && s.id !== 'teams_overview');
-        if (!rawSlides.some((s: any) => s.id === 'fixtures')) {
-          const scheduleIdx = rawSlides.findIndex((s: any) => s.id === 'schedule');
-          const fixturesSlide = { id: 'fixtures' as const, title: 'Carrom Doubles Fixtures', enabled: true, order: 8 };
-          if (scheduleIdx !== -1) {
-            rawSlides.splice(scheduleIdx + 1, 0, fixturesSlide);
-          } else {
-            rawSlides.push(fixturesSlide);
-          }
-        }
-        // Ensure leaderboard (points table) is the 2nd slide right after hero
-        const lbIdx = rawSlides.findIndex((s: any) => s.id === 'leaderboard');
-        if (lbIdx !== -1 && lbIdx !== 1) {
-          const [lbSlide] = rawSlides.splice(lbIdx, 1);
-          const heroIdx = rawSlides.findIndex((s: any) => s.id === 'hero');
-          if (heroIdx !== -1) {
-            rawSlides.splice(heroIdx + 1, 0, lbSlide);
-          } else {
-            rawSlides.unshift(lbSlide);
-          }
-        }
-        // re-order sequentially
-        rawSlides = rawSlides.map((s: any, idx: number) => ({ ...s, order: idx + 1 }));
+    const supabase = getSupabaseClient();
 
-        const sanitizedSettings = {
-          ...INITIAL_DATA.settings,
-          ...(parsed.settings || {}),
-          slides: rawSlides,
-        };
+    // 1. If Supabase is configured, attempt to fetch live cloud data
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from(SUPABASE_TABLE)
+          .select('data')
+          .eq('id', STATE_ROW_ID)
+          .maybeSingle();
 
-        return {
-          settings: sanitizedSettings,
-          teams: parsed.teams && parsed.teams.length > 0 ? parsed.teams : INITIAL_DATA.teams,
-          members: Array.isArray(parsed.members) ? parsed.members : INITIAL_DATA.members,
-          games: Array.isArray(parsed.games) && parsed.games.length > 0 ? parsed.games : INITIAL_DATA.games,
-          announcements: Array.isArray(parsed.announcements) ? parsed.announcements : INITIAL_DATA.announcements,
-          sponsors: Array.isArray(parsed.sponsors) ? parsed.sponsors : INITIAL_DATA.sponsors,
-          fixtures: (parsed.fixtures && Array.isArray(parsed.fixtures.rounds) && parsed.fixtures.rounds.length > 0)
-            ? parsed.fixtures
-            : INITIAL_DATA.fixtures,
-        };
+        if (error) {
+          console.warn('Supabase fetch failed, falling back to local cache:', error.message);
+        } else if (data && data.data) {
+          const sanitized = this.sanitizeData(data.data as CarnivalData);
+          // Keep local cache in sync
+          this.saveToStorage(sanitized);
+          return sanitized;
+        } else {
+          // Table exists but no primary row yet -> seed initial data to Supabase
+          console.info('No remote state found in Supabase. Seeding initial carnival data...');
+          const initial = this.getLocalOrSeed();
+          await this.saveData(initial);
+          return initial;
+        }
+      } catch (err) {
+        console.warn('Error reading from Supabase:', err);
       }
-    } catch (e) {
-      console.warn('Failed to parse stored carnival data, reverting to seed:', e);
     }
-    // First time load: seed data
-    this.saveToStorage(INITIAL_DATA);
-    return INITIAL_DATA;
+
+    // 2. Fallback to LocalStorage / Initial Seed
+    return this.getLocalOrSeed();
   }
 
   async saveData(data: CarnivalData): Promise<void> {
-    this.saveToStorage(data);
+    const sanitized = this.sanitizeData(data);
+    // Always persist to local cache first
+    this.saveToStorage(sanitized);
+
+    // If Supabase is available, sync to the cloud
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from(SUPABASE_TABLE).upsert(
+          {
+            id: STATE_ROW_ID,
+            data: sanitized,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        );
+
+        if (error) {
+          console.error('Failed to sync data to Supabase:', error.message);
+        }
+      } catch (err) {
+        console.error('Error writing to Supabase:', err);
+      }
+    }
   }
 
   async resetToDefault(): Promise<CarnivalData> {
-    this.saveToStorage(INITIAL_DATA);
+    await this.saveData(INITIAL_DATA);
     return INITIAL_DATA;
   }
 
@@ -93,8 +104,111 @@ class LocalStorageDataService implements IDataService {
     if (!parsed.teams || !parsed.games || !parsed.settings) {
       throw new Error('Invalid Carnival JSON format: missing teams, games, or settings.');
     }
-    this.saveToStorage(parsed);
-    return parsed;
+    const sanitized = this.sanitizeData(parsed);
+    this.saveData(sanitized);
+    return sanitized;
+  }
+
+  subscribeToChanges(onUpdate: (data: CarnivalData) => void): () => void {
+    const supabase = getSupabaseClient();
+    if (!supabase) return () => {};
+
+    try {
+      if (this.realtimeChannel) {
+        supabase.removeChannel(this.realtimeChannel);
+      }
+
+      this.realtimeChannel = supabase
+        .channel('carnival_live_sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: SUPABASE_TABLE, filter: `id=eq.${STATE_ROW_ID}` },
+          (payload: any) => {
+            if (payload?.new?.data) {
+              const updated = this.sanitizeData(payload.new.data as CarnivalData);
+              this.saveToStorage(updated);
+              onUpdate(updated);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        if (this.realtimeChannel) {
+          supabase.removeChannel(this.realtimeChannel);
+          this.realtimeChannel = null;
+        }
+      };
+    } catch (err) {
+      console.warn('Realtime subscription error:', err);
+      return () => {};
+    }
+  }
+
+  private getLocalOrSeed(): CarnivalData {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as CarnivalData;
+        return this.sanitizeData(parsed);
+      }
+    } catch (e) {
+      console.warn('LocalStorage read error, using initial seed:', e);
+    }
+    this.saveToStorage(INITIAL_DATA);
+    return INITIAL_DATA;
+  }
+
+  private sanitizeData(raw: CarnivalData): CarnivalData {
+    let rawSlides = raw.settings?.slides || INITIAL_DATA.settings.slides;
+    // Filter out leaders, sponsors, and teams_overview
+    rawSlides = rawSlides.filter(
+      (s: any) => s.id !== 'leaders' && s.id !== 'sponsors' && s.id !== 'teams_overview'
+    );
+
+    if (!rawSlides.some((s: any) => s.id === 'fixtures')) {
+      const scheduleIdx = rawSlides.findIndex((s: any) => s.id === 'schedule');
+      const fixturesSlide = { id: 'fixtures' as const, title: 'Carrom Doubles Fixtures', enabled: true, order: 8 };
+      if (scheduleIdx !== -1) {
+        rawSlides.splice(scheduleIdx + 1, 0, fixturesSlide);
+      } else {
+        rawSlides.push(fixturesSlide);
+      }
+    }
+
+    // Ensure leaderboard (points table) is the 2nd slide right after hero
+    const lbIdx = rawSlides.findIndex((s: any) => s.id === 'leaderboard');
+    if (lbIdx !== -1 && lbIdx !== 1) {
+      const [lbSlide] = rawSlides.splice(lbIdx, 1);
+      const heroIdx = rawSlides.findIndex((s: any) => s.id === 'hero');
+      if (heroIdx !== -1) {
+        rawSlides.splice(heroIdx + 1, 0, lbSlide);
+      } else {
+        rawSlides.unshift(lbSlide);
+      }
+    }
+
+    // re-order sequentially
+    rawSlides = rawSlides.map((s: any, idx: number) => ({ ...s, order: idx + 1 }));
+
+    const sanitizedSettings = {
+      ...INITIAL_DATA.settings,
+      ...(raw.settings || {}),
+      slides: rawSlides,
+    };
+
+    return {
+      settings: sanitizedSettings,
+      teams: raw.teams && raw.teams.length > 0 ? raw.teams : INITIAL_DATA.teams,
+      members: Array.isArray(raw.members) ? raw.members : INITIAL_DATA.members,
+      games: Array.isArray(raw.games) && raw.games.length > 0 ? raw.games : INITIAL_DATA.games,
+      announcements: Array.isArray(raw.announcements) ? raw.announcements : INITIAL_DATA.announcements,
+      sponsors: Array.isArray(raw.sponsors) ? raw.sponsors : INITIAL_DATA.sponsors,
+      fixtures:
+        raw.fixtures && Array.isArray(raw.fixtures.rounds) && raw.fixtures.rounds.length > 0
+          ? raw.fixtures
+          : INITIAL_DATA.fixtures,
+    };
   }
 
   private saveToStorage(data: CarnivalData): void {
@@ -107,4 +221,4 @@ class LocalStorageDataService implements IDataService {
 }
 
 // Export singleton instance of active data service
-export const dataService: IDataService = new LocalStorageDataService();
+export const dataService: IDataService = new HybridDataService();

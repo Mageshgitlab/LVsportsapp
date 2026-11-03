@@ -13,7 +13,20 @@ import {
   Trash2,
   Check,
   AlertTriangle,
+  Database,
+  Key,
+  ExternalLink,
+  RefreshCw,
+  Copy,
 } from 'lucide-react';
+import {
+  getSupabaseUrl,
+  getSupabaseAnonKey,
+  setSupabaseConfig,
+  isSupabaseConfigured,
+  getSupabaseClient,
+} from '../../../lib/supabase';
+import { dataService } from '../../../services/dataService';
 
 export const SettingsTab: React.FC = () => {
   const {
@@ -48,6 +61,82 @@ export const SettingsTab: React.FC = () => {
   const [newSponsorText, setNewSponsorText] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Supabase Cloud Database State
+  const [sbUrl, setSbUrl] = useState(getSupabaseUrl());
+  const [sbKey, setSbKey] = useState(getSupabaseAnonKey());
+  const [sbSavedNotice, setSbSavedNotice] = useState(false);
+  const [sbTesting, setSbTesting] = useState(false);
+  const [sbTestResult, setSbTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [sqlCopied, setSqlCopied] = useState(false);
+
+  const handleSaveSupabaseConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSupabaseConfig(sbUrl, sbKey);
+    setSbSavedNotice(true);
+    setTimeout(() => setSbSavedNotice(false), 3000);
+  };
+
+  const handleTestAndSyncSupabase = async () => {
+    setSbTesting(true);
+    setSbTestResult(null);
+    try {
+      setSupabaseConfig(sbUrl, sbKey);
+      const client = getSupabaseClient();
+      if (!client) {
+        setSbTestResult({
+          success: false,
+          message: 'Please enter your Supabase anon public key from the dashboard.',
+        });
+        setSbTesting(false);
+        return;
+      }
+
+      const { error } = await client.from('carnival_state').select('id').limit(1);
+
+      if (error) {
+        setSbTestResult({
+          success: false,
+          message: `Connected to Supabase, but carnival_state table was not found (${error.message}). Click "Copy SQL Setup" and run it in your Supabase SQL Editor.`,
+        });
+      } else {
+        await dataService.saveData(data);
+        setSbTestResult({
+          success: true,
+          message: 'Connected to Supabase! Current carnival data successfully uploaded and live sync active.',
+        });
+      }
+    } catch (err: any) {
+      setSbTestResult({
+        success: false,
+        message: err.message || 'Connection test failed. Check your network, URL and API Key.',
+      });
+    } finally {
+      setSbTesting(false);
+    }
+  };
+
+  const handleCopySql = () => {
+    const sql = `-- Run this in Supabase SQL Editor:
+CREATE TABLE IF NOT EXISTS public.carnival_state (
+  id TEXT PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE public.carnival_state ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read on carnival_state" ON public.carnival_state;
+CREATE POLICY "Allow public read on carnival_state" ON public.carnival_state FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS "Allow public write on carnival_state" ON public.carnival_state;
+CREATE POLICY "Allow public write on carnival_state" ON public.carnival_state FOR ALL TO public USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'carnival_state') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.carnival_state;
+  END IF;
+END $$;`;
+    navigator.clipboard.writeText(sql);
+    setSqlCopied(true);
+    setTimeout(() => setSqlCopied(false), 2500);
+  };
 
   const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +275,144 @@ export const SettingsTab: React.FC = () => {
             <span>Reset to Default</span>
           </button>
         </div>
+      </div>
+
+      {/* Supabase Cloud Database Card */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-[#0B1528] to-slate-900 border border-cyan-500/30 space-y-5 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white uppercase tracking-wider font-['Outfit']">
+                  Supabase Cloud Database
+                </h3>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    isSupabaseConfigured()
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  }`}
+                >
+                  {isSupabaseConfigured() ? 'Cloud Live Sync Ready' : 'Local Storage Fallback'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Connect your Supabase project (<span className="text-cyan-300 font-mono">cqkhfskjxeghcmknvibs</span>) to sync tournament scores across all 75" TV screens in real time.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <a
+              href="https://supabase.com/dashboard/project/cqkhfskjxeghcmknvibs/settings/api"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+            >
+              <span>Get Anon Key</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+
+            <button
+              onClick={handleCopySql}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Copy SQL code to create table in Supabase"
+            >
+              {sqlCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{sqlCopied ? 'SQL Copied!' : 'Copy SQL Setup'}</span>
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveSupabaseConfig} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-400 mb-1 flex items-center gap-1.5">
+                <span>Supabase Project URL</span>
+              </label>
+              <input
+                type="text"
+                value={sbUrl}
+                onChange={(e) => setSbUrl(e.target.value)}
+                placeholder="https://cqkhfskjxeghcmknvibs.supabase.co"
+                className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-400 mb-1 flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span>Supabase Anon Public API Key</span>
+              </label>
+              <input
+                type="password"
+                value={sbKey}
+                onChange={(e) => setSbKey(e.target.value)}
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-white/10 transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Save Credentials</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTestAndSyncSupabase}
+                disabled={sbTesting}
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${sbTesting ? 'animate-spin' : ''}`} />
+                <span>{sbTesting ? 'Testing Connection...' : 'Test Connection & Push Data'}</span>
+              </button>
+
+              {sbSavedNotice && (
+                <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Saved!</span>
+                </span>
+              )}
+            </div>
+
+            <a
+              href="https://supabase.com/dashboard/project/cqkhfskjxeghcmknvibs/sql/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-slate-400 hover:text-cyan-300 transition-colors flex items-center gap-1 underline underline-offset-2"
+            >
+              <span>Open Supabase SQL Editor</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          {sbTestResult && (
+            <div
+              className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 ${
+                sbTestResult.success
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+              }`}
+            >
+              {sbTestResult.success ? (
+                <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+              )}
+              <span>{sbTestResult.message}</span>
+            </div>
+          )}
+        </form>
       </div>
 
       {/* General Configuration Form */}

@@ -176,6 +176,13 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
         isLoading: false,
         timeRemainingMs: data.settings.slideDurationMs || 5000,
       });
+
+      // Subscribe to live cloud changes (Supabase Realtime)
+      if (dataService.subscribeToChanges) {
+        dataService.subscribeToChanges((updatedData) => {
+          set({ data: updatedData });
+        });
+      }
     } catch (e) {
       console.error('Failed to initialize carnival store:', e);
       set({ isLoading: false });
