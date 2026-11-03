@@ -25,6 +25,8 @@ import {
   setSupabaseConfig,
   isSupabaseConfigured,
   getSupabaseClient,
+  cleanSupabaseUrl,
+  isSecretServiceRoleKey,
 } from '../../../lib/supabase';
 import { dataService } from '../../../services/dataService';
 
@@ -72,7 +74,9 @@ export const SettingsTab: React.FC = () => {
 
   const handleSaveSupabaseConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSupabaseConfig(sbUrl, sbKey);
+    const cleanUrl = cleanSupabaseUrl(sbUrl);
+    setSbUrl(cleanUrl);
+    setSupabaseConfig(cleanUrl, sbKey);
     setSbSavedNotice(true);
     setTimeout(() => setSbSavedNotice(false), 3000);
   };
@@ -80,13 +84,28 @@ export const SettingsTab: React.FC = () => {
   const handleTestAndSyncSupabase = async () => {
     setSbTesting(true);
     setSbTestResult(null);
+
+    const cleanUrl = cleanSupabaseUrl(sbUrl);
+    setSbUrl(cleanUrl);
+
+    // Guard: Check if user pasted the service_role secret key instead of anon public key
+    if (isSecretServiceRoleKey(sbKey)) {
+      setSbTestResult({
+        success: false,
+        message:
+          'Error: You entered the "service_role" secret key! Supabase blocks secret keys in browsers for security. Please copy the "anon" (public) key from your Supabase dashboard instead.',
+      });
+      setSbTesting(false);
+      return;
+    }
+
     try {
-      setSupabaseConfig(sbUrl, sbKey);
+      setSupabaseConfig(cleanUrl, sbKey);
       const client = getSupabaseClient();
       if (!client) {
         setSbTestResult({
           success: false,
-          message: 'Please enter your Supabase anon public key from the dashboard.',
+          message: 'Please enter your Supabase anon (public) key from the dashboard.',
         });
         setSbTesting(false);
         return;
@@ -95,10 +114,18 @@ export const SettingsTab: React.FC = () => {
       const { error } = await client.from('carnival_state').select('id').limit(1);
 
       if (error) {
-        setSbTestResult({
-          success: false,
-          message: `Connected to Supabase, but carnival_state table was not found (${error.message}). Click "Copy SQL Setup" and run it in your Supabase SQL Editor.`,
-        });
+        if (error.message && error.message.includes('Forbidden use of secret API key')) {
+          setSbTestResult({
+            success: false,
+            message:
+              'Forbidden: You pasted the secret "service_role" key. Supabase blocks secret keys in browsers. In Supabase Settings -> API, copy the "anon" (public) key instead.',
+          });
+        } else {
+          setSbTestResult({
+            success: false,
+            message: `Connected to Supabase, but carnival_state table was not found (${error.message}). Click "Copy SQL Setup" and run it in your Supabase SQL Editor.`,
+          });
+        }
       } else {
         await dataService.saveData(data);
         setSbTestResult({
@@ -107,10 +134,18 @@ export const SettingsTab: React.FC = () => {
         });
       }
     } catch (err: any) {
-      setSbTestResult({
-        success: false,
-        message: err.message || 'Connection test failed. Check your network, URL and API Key.',
-      });
+      if (err.message && err.message.includes('Forbidden use of secret API key')) {
+        setSbTestResult({
+          success: false,
+          message:
+            'Forbidden: You pasted the secret "service_role" key. Supabase blocks secret keys in web browsers. Please copy the "anon" (public) key from your Supabase dashboard.',
+        });
+      } else {
+        setSbTestResult({
+          success: false,
+          message: err.message || 'Connection test failed. Check your network, URL and API Key.',
+        });
+      }
     } finally {
       setSbTesting(false);
     }
@@ -330,9 +365,12 @@ END $$;`;
         <form onSubmit={handleSaveSupabaseConfig} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-400 mb-1 flex items-center gap-1.5">
-                <span>Supabase Project URL</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-1.5">
+                  <span>Supabase Project URL</span>
+                </label>
+                <span className="text-[10px] text-slate-400 font-mono">(Base URL without /rest/v1)</span>
+              </div>
               <input
                 type="text"
                 value={sbUrl}
@@ -343,10 +381,13 @@ END $$;`;
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-400 mb-1 flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-amber-400" />
-                <span>Supabase Anon Public API Key</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Supabase Anon Public API Key</span>
+                </label>
+                <span className="text-[10px] text-amber-400 font-bold font-mono">Use "anon" public, NOT "service_role"</span>
+              </div>
               <input
                 type="password"
                 value={sbKey}
