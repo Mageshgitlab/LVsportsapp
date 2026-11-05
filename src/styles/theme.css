@@ -179,6 +179,21 @@ body {
   transform-origin: center top;
 }
 
+.fixture-date-feed {
+  animation: fixtureDateFeed 32s linear infinite;
+}
+
+@keyframes fixtureDateFeed {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fixture-date-feed {
+    animation-play-state: paused;
+  }
+}
+
 @keyframes fixtureRoundEnter {
   from {
     opacity: 0;

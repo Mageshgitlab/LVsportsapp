@@ -262,21 +262,18 @@ export const LiveDashboardSlide: React.FC = () => {
           </div>
 
           <div className="p-3 flex-1 min-h-0 flex flex-col gap-2">
-            {fixtureDateSections.length > 0 && <div className="grid grid-cols-2 gap-2 shrink-0 max-h-32 overflow-y-auto">
-              {fixtureDateSections.map((section) => (
-                <div key={section.date} className="rounded-lg border border-white/15 bg-[#0d1129]/72 px-2 py-1.5 min-w-0">
-                  <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1">
-                    <span className="font-['Rajdhani'] font-black text-cyan-300 uppercase" style={{ fontSize: '16px' }}>UPCOMING</span>
-                    <span className="font-['Rajdhani'] font-bold text-slate-300" style={{ fontSize: '18px' }}>{section.date}</span>
+            {fixtureDateSections.length > 0 && <div className="relative shrink-0 overflow-hidden rounded-lg border border-white/15 bg-[#0d1129]/72 py-1.5" aria-label="Upcoming fixtures by date">
+              <div className="fixture-date-feed flex w-max items-center gap-2 px-2">
+                {[...fixtureDateSections, ...fixtureDateSections].map((section, copyIndex) => (
+                  <div key={`${section.date}-${copyIndex}`} className="flex items-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-950/30 px-2.5 py-1 whitespace-nowrap">
+                    <span className="font-['Rajdhani'] font-black text-cyan-300 uppercase" style={{ fontSize: '15px' }}>{section.date}</span>
+                    <span className="text-white/50">•</span>
+                    <span className="font-['Rajdhani'] font-black text-white uppercase" style={{ fontSize: '15px' }}>
+                      {section.items.map((item) => item.gameName).join(' · ')}
+                    </span>
                   </div>
-                  {section.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-1 py-0.5 font-['Rajdhani'] uppercase" style={{ fontSize: '15px' }}>
-                      <span className="text-white font-black truncate">{item.gameName}</span>
-                      <span className="text-slate-400 font-bold truncate">{item.roundLabel}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>}
 
             {currentFixture && <div className="flex-1 min-h-0 rounded-lg border border-white/15 bg-[#0d1129]/72 p-2 flex flex-col overflow-hidden">
