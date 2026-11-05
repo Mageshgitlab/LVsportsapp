@@ -174,6 +174,28 @@ export const ThemeTab: React.FC = () => {
 
       {/* Plain Dark Fallback Toggle */}
       <div className="p-6 rounded-xl bg-[#0D1129]/95 border border-white/10 space-y-3">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div>
+            <h4 className="text-sm font-bold text-white font-['Rajdhani']">
+              Background Atmosphere
+            </h4>
+            <p className="text-xs text-slate-400 font-['Rajdhani']">
+              Enable or disable arena fog, embers, and cinematic backdrop overlays
+            </p>
+          </div>
+
+          <button
+            onClick={() => update({ backgroundEnabled: !settings.backgroundEnabled })}
+            className={`px-3 py-1.5 rounded text-xs font-black uppercase tracking-wider font-['Rajdhani'] transition-colors cursor-pointer ${
+              settings.backgroundEnabled
+                ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/40'
+                : 'bg-white/10 text-slate-400 hover:text-white'
+            }`}
+          >
+            {settings.backgroundEnabled ? 'Background ON' : 'Background OFF'}
+          </button>
+        </div>
+
         <div className="flex items-center justify-between">
           <div>
             <h4 className="text-sm font-bold text-white font-['Rajdhani']">

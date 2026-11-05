@@ -19,6 +19,12 @@ export const ASSETS = {
   trophySpotlight: asset('images/golden_trophy.jpg'),
   sportsEquipment: asset('images/sports_equipment.jpg'),
   stadiumFans: asset('images/stadium_fans.jpg'),
+  arenaTemple: asset('images/backgrounds/temple_courtyard.jpg'),
+  arenaPit: asset('images/backgrounds/fiery_pit.jpg'),
+  arenaPillars: asset('images/backgrounds/stone_pillars.jpg'),
+  arenaDragon: asset('images/dragon_emblem.png'),
+  arenaRoyalOriginal: asset('images/backgrounds/arena_royal_original.svg'),
+  arenaEmbersOriginal: asset('images/backgrounds/arena_embers_original.svg'),
 
   // Audio Sound Effects (Synthesized via Web Audio if missing)
   audio: {
@@ -26,5 +32,6 @@ export const ASSETS = {
     fight: asset('audio/fight.mp3'),
     victory: asset('audio/victory.mp3'),
     roundStart: asset('audio/round_start.mp3'),
+    flawlessVictory: asset('audio/flawless_victory.mp3'),
   },
 };

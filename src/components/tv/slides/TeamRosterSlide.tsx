@@ -41,26 +41,35 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
 
       {/* Slide Top Bar */}
       <div className="flex items-center justify-between border-b border-cyan-500/25 pb-3 relative z-10 shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <span
-            className="px-3 py-1 rounded text-xs font-black font-['Rajdhani'] text-slate-950 uppercase tracking-widest shadow-md"
-            style={{ backgroundColor: style.primaryColor }}
+            className="px-3.5 py-1 rounded font-black font-['Rajdhani'] text-slate-950 uppercase tracking-widest shadow-md"
+            style={{ backgroundColor: style.primaryColor, fontSize: 'var(--fs-badge, 24px)' }}
           >
             TEAM {team.code} · {style.characterName.toUpperCase()}
           </span>
-          <h2 className="text-3xl lg:text-4xl font-black text-white font-['Rajdhani'] uppercase tracking-wider">
+          <h2
+            className="font-black text-white font-['Rajdhani'] uppercase tracking-wider"
+            style={{ fontSize: 'var(--fs-section, 58px)', lineHeight: 1.1 }}
+          >
             {team.name}
           </h2>
-          <span className="text-cyan-300 font-bold text-base font-['Rajdhani']">
+          <span
+            className="text-cyan-300 font-bold font-['Rajdhani']"
+            style={{ fontSize: 'var(--fs-row, 36px)' }}
+          >
             · {style.tagline}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0D1129] border border-cyan-500/30 text-slate-300 text-xs font-bold uppercase tracking-wider font-['Rajdhani']">
-          <Users className="w-4 h-4" style={{ color: style.primaryColor }} />
+        <div
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#0D1129] border border-cyan-500/30 text-slate-300 font-bold uppercase tracking-wider font-['Rajdhani']"
+          style={{ fontSize: 'var(--fs-row, 36px)' }}
+        >
+          <Users className="w-6 h-6" style={{ color: style.primaryColor }} />
           <span>
             Active Athletes:{' '}
-            <strong className="text-white font-mono text-sm">{teamMembers.length}</strong>
+            <strong className="text-white font-mono">{teamMembers.length}</strong>
           </span>
         </div>
       </div>
@@ -73,20 +82,26 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
           style={{ borderColor: `${style.primaryColor}80` }}
         >
           {/* Emblem & Branding */}
-          <div className="flex flex-col items-center text-center pb-4 border-b border-white/10">
+          <div className="flex flex-col items-center text-center pb-3 border-b border-white/10">
             <TeamCrest team={team} size="xl" glow={true} />
-            <h3 className="text-2xl font-black text-white font-['Rajdhani'] mt-2.5 tracking-wider">
+            <h3
+              className="font-black text-white font-['Rajdhani'] mt-2 tracking-wider"
+              style={{ fontSize: 'var(--fs-subheading, 48px)', lineHeight: 1.1 }}
+            >
               {team.name}
             </h3>
-            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest font-['Rajdhani'] mt-0.5">
+            <p
+              className="font-bold text-amber-400 uppercase tracking-widest font-['Rajdhani'] mt-0.5"
+              style={{ fontSize: '20px' }}
+            >
               {style.tagline}
             </p>
           </div>
 
           {/* Captain & Vice Captain Spotlight */}
-          <div className="space-y-3 py-3">
+          <div className="space-y-3 py-2">
             {/* Captain Card */}
-            <div className="p-3 rounded-lg bg-[#070A1E] border border-amber-500/40 flex items-center gap-3.5 shadow-md">
+            <div className="p-3.5 rounded-lg bg-[#070A1E] border border-amber-500/40 flex items-center gap-3.5 shadow-md">
               <MemberAvatar
                 name={team.captain}
                 color={style.primaryColor}
@@ -95,21 +110,30 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
                 jerseyNumber={1}
               />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-400 font-['Rajdhani']">
-                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <div
+                  className="flex items-center gap-1.5 font-black uppercase tracking-wider text-amber-400 font-['Rajdhani']"
+                  style={{ fontSize: 'var(--fs-badge, 24px)' }}
+                >
+                  <Flame className="w-5 h-5 text-amber-400" />
                   <span>Captain</span>
                 </div>
-                <div className="text-xl font-black text-white truncate mt-0.5 font-['Rajdhani']">
+                <div
+                  className="font-black text-white truncate font-['Rajdhani'] mt-0.5"
+                  style={{ fontSize: 'var(--fs-name, 40px)', lineHeight: 1.1 }}
+                >
                   {team.captain}
                 </div>
-                <div className="text-[11px] text-slate-400 font-semibold font-['Rajdhani']">
+                <div
+                  className="text-slate-400 font-semibold font-['Rajdhani']"
+                  style={{ fontSize: '20px' }}
+                >
                   Squad Leader
                 </div>
               </div>
             </div>
 
             {/* Vice Captain Card */}
-            <div className="p-3 rounded-lg bg-[#070A1E] border border-cyan-500/30 flex items-center gap-3.5 shadow-md">
+            <div className="p-3.5 rounded-lg bg-[#070A1E] border border-cyan-500/30 flex items-center gap-3.5 shadow-md">
               <MemberAvatar
                 name={team.viceCaptain}
                 color={style.primaryColor}
@@ -118,14 +142,23 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
                 jerseyNumber={2}
               />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-cyan-300 font-['Rajdhani']">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <div
+                  className="flex items-center gap-1.5 font-black uppercase tracking-wider text-cyan-300 font-['Rajdhani']"
+                  style={{ fontSize: 'var(--fs-badge, 24px)' }}
+                >
+                  <Sparkles className="w-5 h-5 text-cyan-400" />
                   <span>Vice Captain</span>
                 </div>
-                <div className="text-xl font-black text-white truncate mt-0.5 font-['Rajdhani']">
+                <div
+                  className="font-black text-white truncate font-['Rajdhani'] mt-0.5"
+                  style={{ fontSize: 'var(--fs-name, 40px)', lineHeight: 1.1 }}
+                >
                   {team.viceCaptain}
                 </div>
-                <div className="text-[11px] text-slate-400 font-semibold font-['Rajdhani']">
+                <div
+                  className="text-slate-400 font-semibold font-['Rajdhani']"
+                  style={{ fontSize: '20px' }}
+                >
                   Second in Command
                 </div>
               </div>
@@ -133,7 +166,10 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
           </div>
 
           {/* Bottom Team Banner */}
-          <div className="p-2.5 bg-[#070A1E]/80 rounded text-center border border-white/10 font-['Rajdhani'] text-xs font-bold text-slate-300 tracking-wider">
+          <div
+            className="p-3 bg-[#070A1E]/80 rounded text-center border border-white/10 font-['Rajdhani'] font-bold text-slate-300 tracking-wider"
+            style={{ fontSize: '22px' }}
+          >
             FACTION COLOR: <strong style={{ color: style.primaryColor }}>{team.color.toUpperCase()}</strong>
           </div>
         </div>
@@ -141,7 +177,7 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
         {/* Right Area: 8 cols - Full Roster Grid (or Empty Squad State) */}
         <div className="col-span-8 flex flex-col justify-center">
           {teamMembers.length > 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[480px] overflow-hidden">
+            <div className="grid grid-cols-2 gap-3 max-h-[500px] overflow-hidden">
               {teamMembers.map((member, index) => {
                 const isLeader = member.name === team.captain || member.name === team.viceCaptain;
                 const roleType =
@@ -157,10 +193,10 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
                     initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.25, delay: index * 0.02 }}
-                    className="flex items-center gap-3 p-2.5 rounded-lg bg-[#0D1129]/95 border border-white/10 hover:border-cyan-400/60 transition-all shadow-md group"
+                    className="flex items-center gap-3.5 p-3 rounded-lg bg-[#0D1129]/95 border border-white/10 hover:border-cyan-400/60 transition-all shadow-md group"
                     style={{
                       borderLeftColor: style.primaryColor,
-                      borderLeftWidth: '3.5px',
+                      borderLeftWidth: '4px',
                     }}
                   >
                     <MemberAvatar
@@ -168,27 +204,34 @@ export const TeamRosterSlide: React.FC<TeamRosterSlideProps> = ({ teamId }) => {
                       color={style.primaryColor}
                       role={roleType}
                       jerseyNumber={member.jerseyNumber || index + 3}
-                      size="sm"
+                      size="md"
                     />
 
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-extrabold text-white truncate group-hover:text-cyan-200 transition-colors font-['Rajdhani']">
+                      <div
+                        className="font-extrabold text-white truncate group-hover:text-cyan-200 transition-colors font-['Rajdhani']"
+                        style={{ fontSize: 'var(--fs-row, 36px)', lineHeight: 1.15 }}
+                      >
                         {member.name}
                       </div>
-                      <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1 mt-0.5">
+                      <div className="font-mono text-slate-400 flex items-center gap-1 mt-0.5">
                         {isLeader ? (
                           <span
-                            className="font-black uppercase tracking-wider text-[9px] px-1.5 py-0.2 rounded font-['Rajdhani']"
+                            className="font-black uppercase tracking-wider px-2 py-0.5 rounded font-['Rajdhani']"
                             style={{
                               backgroundColor: `${style.primaryColor}30`,
                               color: style.primaryColor,
+                              fontSize: '18px',
                             }}
                           >
                             {roleType === 'captain' ? 'CAPTAIN' : 'VICE CAPTAIN'}
                           </span>
                         ) : (
-                          <span className="font-['Rajdhani'] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                            ATHLETE
+                          <span
+                            className="font-['Rajdhani'] text-slate-400 font-bold uppercase tracking-wider"
+                            style={{ fontSize: '18px' }}
+                          >
+                            ATHLETE · #{member.jerseyNumber || index + 3}
                           </span>
                         )}
                       </div>

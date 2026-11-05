@@ -22,6 +22,8 @@ export interface Member {
 }
 
 export type GameStatus = 'upcoming' | 'live' | 'completed';
+export type FixtureMode = 'pair' | 'group';
+export type GroupFixtureFormat = 'round_robin' | 'knockout';
 
 export interface Game {
   id: string;
@@ -55,6 +57,7 @@ export interface Sponsor {
 
 export type SlideId =
   | 'hero'
+  | 'live_dashboard'
   | 'teams_overview'
   | 'team_a'
   | 'team_b'
@@ -71,6 +74,13 @@ export interface SlideConfig {
   title: string;
   enabled: boolean;
   order: number;
+  durationSec?: number; // per-slide duration in seconds
+}
+
+export interface PanelIntervals {
+  gamesScheduleSec: number; // default 8
+  fixturesSec: number; // default 10
+  announcementsSec: number; // default 8
 }
 
 export interface CarnivalSettings {
@@ -78,9 +88,11 @@ export interface CarnivalSettings {
   eventSubtitle: string;
   eventDate: string;
   venueName: string;
-  slideDurationMs: number; // default 5000
+  slideDurationMs: number; // default fallback (ms)
   slides: SlideConfig[];
   autoRotate: boolean;
+  slideDurations?: Record<string, number>; // slideId -> duration in seconds
+  panelIntervals?: PanelIntervals;
 }
 
 export interface TeamScoreStat {
@@ -115,12 +127,28 @@ export interface FixtureRound {
   ties: FixtureTie[];
 }
 
+export interface GameWiseFixture {
+  id: string;
+  gameId: string;
+  gameName: string;
+  fixtureDate: string;
+  fixtureEndDate?: string;
+  roundLabel: string;
+  status: GameStatus;
+  notes?: string;
+}
+
 export interface GameFixtures {
   gameId: string;
   gameName: string;
   title: string;
   subtitle?: string;
+  mode?: FixtureMode;
+  groupFormat?: GroupFixtureFormat;
   pairPlayers?: Record<string, [string, string]>; // `${teamId}_pair_${pairNumber}` -> [memberId1, memberId2]
+  pairNames?: Record<string, string>; // `${gameId}_${teamId}_pair_${pairNumber}` -> editable pair name
+  teamPairCounts?: Record<string, number>; // `${teamId}` -> number of configured pairs
+  gameWiseFixtures?: GameWiseFixture[];
   rounds: FixtureRound[];
 }
 

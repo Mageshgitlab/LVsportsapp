@@ -42,13 +42,13 @@ export const AdminLayout: React.FC = () => {
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'members', label: 'Members', icon: Users },
     { id: 'games', label: 'Games', icon: Calendar },
-    { id: 'fixtures', label: 'Carrom', icon: Swords },
+    { id: 'fixtures', label: 'Fixtures', icon: Swords },
     { id: 'results', label: 'Results', icon: Trophy },
     { id: 'announcements', label: 'Announcements', icon: Bell },
   ];
 
   return (
-    <div className="min-h-screen bg-[#070A1E] text-slate-100 flex flex-col font-['Rajdhani',sans-serif]">
+    <div className="arena-admin-theme min-h-screen bg-[#070A1E] text-slate-100 flex flex-col font-['Rajdhani',sans-serif]">
       {/* Top Header */}
       <header className="h-16 px-4 lg:px-8 bg-[#0B0F2A] border-b border-cyan-500/25 flex items-center justify-between gap-3 shrink-0 sticky top-0 z-40 backdrop-blur-md shadow-2xl">
         {/* Zone 1: Wordmark with Emblem */}

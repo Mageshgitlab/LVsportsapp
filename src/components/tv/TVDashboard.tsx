@@ -5,8 +5,8 @@ import { TVHeader } from './TVHeader';
 import { TVFooter } from './TVFooter';
 import { ProgressBar } from './ProgressBar';
 import { SlideRenderer } from './SlideRenderer';
-import { AnimatePresence, motion } from 'motion/react';
 import { Pause, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ASSETS } from '../../config/assets';
 import {
   getStoredThemeSettings,
   tournamentSound,
@@ -29,7 +29,35 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
   } = useCarnivalStore();
 
   const eligibleSlides = getEligibleSlides(data);
-  const slideDuration = data.settings.slideDurationMs || 5000;
+  const currentSlideConfig = eligibleSlides[activeSlideIndex % Math.max(1, eligibleSlides.length)];
+  const isFixturesSlide = currentSlideConfig?.id === 'fixtures';
+
+  // Per-slide duration (seconds -> ms) with defaults:
+  // Intro 10s, Live Dashboard 60s, each Team slide (A,B,C,D) 12s, Teams Overview 10s
+  const currentSlideDuration = (() => {
+    if (!currentSlideConfig) return 10000;
+    if (currentSlideConfig.durationSec && currentSlideConfig.durationSec > 0) {
+      return currentSlideConfig.durationSec * 1000;
+    }
+    if (data.settings.slideDurations?.[currentSlideConfig.id]) {
+      return data.settings.slideDurations[currentSlideConfig.id] * 1000;
+    }
+    switch (currentSlideConfig.id) {
+      case 'hero':
+        return 10000;
+      case 'live_dashboard':
+        return 60000;
+      case 'teams_overview':
+        return 10000;
+      case 'team_a':
+      case 'team_b':
+      case 'team_c':
+      case 'team_d':
+        return 12000;
+      default:
+        return data.settings.slideDurationMs || 10000;
+    }
+  })();
 
   // Progress fraction for active slide (0 to 1)
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -39,10 +67,6 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
 
   // Theme Settings
   const [themeSettings, setThemeSettings] = useState(getStoredThemeSettings());
-  const [isFlashing, setIsFlashing] = useState(false);
-
-  const currentSlideConfig = eligibleSlides[activeSlideIndex % Math.max(1, eligibleSlides.length)];
-  const isFixturesSlide = currentSlideConfig?.id === 'fixtures';
 
   useEffect(() => {
     const handleThemeChange = (e: any) => {
@@ -51,17 +75,6 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
     window.addEventListener('theme-settings-changed', handleThemeChange);
     return () => window.removeEventListener('theme-settings-changed', handleThemeChange);
   }, []);
-
-  // Trigger brief visual flash on slide change
-  useEffect(() => {
-    if (themeSettings.effectsIntensity !== 'low' && !themeSettings.plainDarkFallback) {
-      setIsFlashing(true);
-      const timer = setTimeout(() => {
-        setIsFlashing(false);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [activeSlideIndex, themeSettings.effectsIntensity, themeSettings.plainDarkFallback]);
 
   // Play tournament sound cues if audio is enabled
   useEffect(() => {
@@ -86,7 +99,7 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
     const interval = setInterval(() => {
       setElapsedMs((prev) => {
         const nextVal = prev + intervalMs;
-        if (nextVal >= slideDuration) {
+        if (nextVal >= currentSlideDuration) {
           nextSlide();
           return 0;
         }
@@ -95,7 +108,7 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isPaused, slideDuration, eligibleSlides.length, nextSlide, isFixturesSlide]);
+  }, [isPaused, currentSlideDuration, eligibleSlides.length, nextSlide, isFixturesSlide]);
 
   // Reset elapsed when slide index changes
   useEffect(() => {
@@ -144,12 +157,13 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
 
   const content = (
     <div
-      className="w-full h-full flex flex-col justify-between relative overflow-hidden select-none bg-[#070A1E] text-slate-100"
-      style={{ fontFamily: "'Plus Jakarta Sans', 'Rajdhani', sans-serif" }}
+      className={`arena-tv-theme ${themeSettings.backgroundEnabled ? '' : 'arena-bg-off'} w-full h-full flex flex-col justify-between relative overflow-hidden select-none bg-[#070A1E] text-slate-100`}
+      style={{
+        fontFamily: "'Plus Jakarta Sans', 'Rajdhani', sans-serif",
+        ['--arena-bg-image-main' as any]: themeSettings.backgroundEnabled ? `url(${ASSETS.arenaRoyalOriginal})` : 'none',
+        ['--arena-bg-image-overlay' as any]: themeSettings.backgroundEnabled ? `url(${ASSETS.arenaEmbersOriginal})` : 'none',
+      }}
     >
-      {/* Visual Flash effect */}
-      {isFlashing && <div className="fg-flash-effect" />}
-
       {/* Persistent Top Header with Integrated Non-Overlapping Slide Indicator */}
       <TVHeader
         slides={eligibleSlides}
@@ -159,31 +173,22 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
 
       {/* Main Slide Area with Smooth Transitions - Clean & Zero Overlap */}
       <main className="flex-1 relative overflow-hidden flex items-center justify-center">
-        <AnimatePresence mode="wait">
-          {currentSlideConfig && (
-            <motion.div
-              key={currentSlideConfig.id}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full h-full"
-            >
-              <SlideRenderer
-                slideId={currentSlideConfig.id}
-                isPaused={isPaused}
-                onFixturesComplete={() => {
-                  nextSlide();
-                  setElapsedMs(0);
-                  setFixturesProgressRatio(0);
-                }}
-                onFixturesProgress={(ratio) => {
-                  setFixturesProgressRatio(ratio);
-                }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {currentSlideConfig && (
+          <div key={currentSlideConfig.id} className="w-full h-full">
+            <SlideRenderer
+              slideId={currentSlideConfig.id}
+              isPaused={isPaused}
+              onFixturesComplete={() => {
+                nextSlide();
+                setElapsedMs(0);
+                setFixturesProgressRatio(0);
+              }}
+              onFixturesProgress={(ratio) => {
+                setFixturesProgressRatio(ratio);
+              }}
+            />
+          </div>
+        )}
 
         {/* Transient On-Screen Feedback Indicator */}
         {feedbackNotice && (
@@ -204,7 +209,7 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
 
       {/* Progress Bar Showing Time Left for Active Slide */}
       <ProgressBar
-        progressRatio={isFixturesSlide ? fixturesProgressRatio : Math.min(1, elapsedMs / Math.max(1, slideDuration))}
+        progressRatio={isFixturesSlide ? fixturesProgressRatio : Math.min(1, elapsedMs / Math.max(1, currentSlideDuration))}
         isPaused={isPaused}
       />
 

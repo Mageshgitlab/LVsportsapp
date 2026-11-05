@@ -87,20 +87,52 @@ export const FixturesSlide: React.FC<FixturesSlideProps> = ({
     return null;
   }
 
+  if (fixtures.mode === 'group') {
+    const result = currentTie.matches[0];
+    const winner = result?.winnerTeamId ? teams.find((team) => team.id === result.winnerTeamId) : undefined;
+    const groupGameName = fixtures.gameName || 'Group Game';
+    return (
+      <div className="relative w-full h-full flex flex-col justify-between px-10 py-8 bg-gradient-to-b from-[#040612] via-[#080D26] to-[#04050E] overflow-hidden font-['Rajdhani']">
+        <div className="flex items-center justify-between border-b border-cyan-500/25 pb-4">
+          <div className="flex items-center gap-3 text-cyan-300 uppercase font-black tracking-widest">
+            <Swords className="w-5 h-5" /> {groupGameName} Fixtures
+          </div>
+          <div className="text-amber-300 uppercase font-black tracking-widest">{currentTie.roundTitle} · Match {activeTieIndex + 1} of {allTies.length}</div>
+        </div>
+        <div className="flex-1 flex items-center justify-center gap-12">
+          {[teamA, teamB].map((team, index) => (
+            <React.Fragment key={team.id}>
+              {index === 1 && <div className="text-6xl font-black italic text-amber-300">VS</div>}
+              <div className="min-w-[28vw] text-center p-10 rounded-3xl border-2 bg-black/40" style={{ borderColor: TEAM_STYLES[team.id]?.primaryColor || team.color }}>
+                <TeamCrest team={team} size="lg" />
+                <div className="mt-5 text-4xl font-black uppercase text-white">{team.name}</div>
+                {winner?.id === team.id && <div className="mt-3 text-xl font-black uppercase text-amber-300">Match Winner</div>}
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+        <div className="text-center text-lg font-black uppercase tracking-widest text-slate-300">
+          {result?.status === 'live' ? 'Match Live' : winner ? `${winner.name} won` : result?.status === 'completed' ? 'Match completed' : 'Upcoming Match'}
+        </div>
+      </div>
+    );
+  }
+
   const styleA = TEAM_STYLES[teamA.id];
   const styleB = TEAM_STYLES[teamB.id];
 
-  const getPairPlayerNames = (teamId: string, pairNumber: number): { p1: string; p2: string; raw: string } => {
+  const getPairPlayerNames = (teamId: string, pairNumber: number): { p1: string; p2: string; raw: string; pairName: string } => {
     const pairKey = `${teamId}_pair_${pairNumber}`;
+    const pairName = fixtures.pairNames?.[`${fixtures.gameId}_${pairKey}`] || `Pair ${pairNumber}`;
     const pairIds = fixtures.pairPlayers?.[pairKey];
     if (!pairIds || (!pairIds[0] && !pairIds[1])) {
-      return { p1: `Pair ${pairNumber} Fighter 1`, p2: `Pair ${pairNumber} Fighter 2`, raw: '' };
+      return { p1: `${pairName} Player 1`, p2: `${pairName} Player 2`, raw: '', pairName };
     }
     const mem1 = members.find((m) => m.id === pairIds[0]);
     const mem2 = members.find((m) => m.id === pairIds[1]);
     const p1 = mem1 ? `${mem1.name} (#${mem1.jerseyNumber || '?'})` : 'Player 1';
     const p2 = mem2 ? `${mem2.name} (#${mem2.jerseyNumber || '?'})` : 'Player 2';
-    return { p1, p2, raw: `${mem1?.name || ''} & ${mem2?.name || ''}` };
+    return { p1, p2, raw: `${mem1?.name || ''} & ${mem2?.name || ''}`, pairName };
   };
 
   // Calculate tie match statistics
@@ -329,7 +361,7 @@ export const FixturesSlide: React.FC<FixturesSlideProps> = ({
                       P{match.pairANumber}
                     </span>
                     <span className="text-[11px] font-bold text-slate-200 truncate uppercase">
-                      {namesA.raw || `Pair ${match.pairANumber}`}
+                      {namesA.raw ? `${namesA.pairName} · ${namesA.raw}` : namesA.pairName}
                     </span>
                   </div>
 
@@ -357,7 +389,7 @@ export const FixturesSlide: React.FC<FixturesSlideProps> = ({
                   {/* Right Board Pair */}
                   <div className="flex items-center gap-2 min-w-0 flex-1 justify-end text-right">
                     <span className="text-[11px] font-bold text-slate-200 truncate uppercase">
-                      {namesB.raw || `Pair ${match.pairBNumber}`}
+                      {namesB.raw ? `${namesB.pairName} · ${namesB.raw}` : namesB.pairName}
                     </span>
                     <span
                       className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black text-slate-950 shrink-0 shadow-sm"

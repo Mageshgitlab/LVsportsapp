@@ -36,6 +36,8 @@ export const SettingsTab: React.FC = () => {
     updateSettings,
     setSlidesOrder,
     toggleSlide,
+    updateSlideDuration,
+    updatePanelIntervals,
     addSponsor,
     deleteSponsor,
     resetToDefault,
@@ -48,8 +50,18 @@ export const SettingsTab: React.FC = () => {
   const [eventDate, setEventDate] = useState(data.settings.eventDate);
   const [venue, setVenue] = useState(data.settings.venueName);
   const [slideDurationSec, setSlideDurationSec] = useState(
-    Math.round((data.settings.slideDurationMs || 5000) / 1000)
+    Math.round((data.settings.slideDurationMs || 10000) / 1000)
   );
+
+  // Live Dashboard Panel Intervals (PANEL_INTERVALS config)
+  const [panelIntervalsState, setPanelIntervalsState] = useState(
+    data.settings.panelIntervals || {
+      gamesScheduleSec: 8,
+      fixturesSec: 10,
+      announcementsSec: 8,
+    }
+  );
+  const [panelSavedNotice, setPanelSavedNotice] = useState(false);
 
   const [savedNotice, setSavedNotice] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -229,6 +241,13 @@ END $$;`;
     });
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 2500);
+  };
+
+  const handleSavePanelIntervals = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updatePanelIntervals(panelIntervalsState);
+    setPanelSavedNotice(true);
+    setTimeout(() => setPanelSavedNotice(false), 2500);
   };
 
   const handleMoveSlide = async (index: number, direction: 'up' | 'down') => {
@@ -709,7 +728,22 @@ END $$;`;
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Per-Slide Duration Setting */}
+                  <div className="flex items-center gap-1.5 bg-black/60 px-2.5 py-1 rounded-lg border border-white/10">
+                    <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span className="text-[11px] text-slate-400 font-mono">Duration:</span>
+                    <input
+                      type="number"
+                      min={3}
+                      max={300}
+                      value={slide.durationSec || (slide.id === 'live_dashboard' ? 60 : slide.id === 'hero' ? 8 : slide.id === 'teams_overview' ? 10 : 12)}
+                      onChange={(e) => updateSlideDuration(slide.id, parseInt(e.target.value) || 10)}
+                      className="w-14 px-1.5 py-0.5 bg-slate-900 border border-white/20 rounded text-center text-xs font-mono font-bold text-amber-300 focus:outline-none focus:border-cyan-400"
+                    />
+                    <span className="text-[11px] text-slate-400 font-mono">sec</span>
+                  </div>
+
                   {/* Toggle Enabled */}
                   <button
                     onClick={() => toggleSlide(slide.id, !slide.enabled)}
@@ -755,6 +789,121 @@ END $$;`;
           })}
         </div>
       </div>
+
+      {/* Live Dashboard Panel Intervals (PANEL_INTERVALS config) */}
+      <form
+        onSubmit={handleSavePanelIntervals}
+        className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-[#0B1528] to-slate-900 border border-cyan-500/30 shadow-xl space-y-4"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div>
+            <h3 className="text-base font-bold text-white uppercase tracking-wider font-['Outfit'] flex items-center gap-2">
+              <Clock className="w-4 h-4 text-cyan-400" />
+              <span>Live Dashboard Panel Rotation Intervals (PANEL_INTERVALS)</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Control the independent auto-rotation cycle times for each section on Slide 2.
+            </p>
+          </div>
+          <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+            Slide 2 Live Panels
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Games Schedule interval */}
+          <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
+            <label className="block text-xs font-bold uppercase text-slate-300">
+              Games Schedule
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={3}
+                max={60}
+                value={panelIntervalsState.gamesScheduleSec}
+                onChange={(e) =>
+                  setPanelIntervalsState((prev) => ({
+                    ...prev,
+                    gamesScheduleSec: parseInt(e.target.value) || 8,
+                  }))
+                }
+                className="w-20 px-2.5 py-1.5 bg-slate-900 border border-cyan-500/40 rounded-lg text-sm font-mono font-black text-cyan-300 focus:outline-none"
+              />
+              <span className="text-xs text-slate-400 font-mono">seconds</span>
+            </div>
+            <p className="text-[10px] text-slate-400">Pages 4 games at a time (Default: 8s)</p>
+          </div>
+
+          {/* Fixtures interval */}
+          <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
+            <label className="block text-xs font-bold uppercase text-slate-300">
+              Fixtures
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={3}
+                max={60}
+                value={panelIntervalsState.fixturesSec}
+                onChange={(e) =>
+                  setPanelIntervalsState((prev) => ({
+                    ...prev,
+                    fixturesSec: parseInt(e.target.value) || 10,
+                  }))
+                }
+                className="w-20 px-2.5 py-1.5 bg-slate-900 border border-violet-500/40 rounded-lg text-sm font-mono font-black text-violet-300 focus:outline-none"
+              />
+              <span className="text-xs text-slate-400 font-mono">seconds</span>
+            </div>
+            <p className="text-[10px] text-slate-400">Switches round ties (Default: 10s)</p>
+          </div>
+
+          {/* Announcements interval */}
+          <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
+            <label className="block text-xs font-bold uppercase text-slate-300">
+              Announcements
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={3}
+                max={60}
+                value={panelIntervalsState.announcementsSec}
+                onChange={(e) =>
+                  setPanelIntervalsState((prev) => ({
+                    ...prev,
+                    announcementsSec: parseInt(e.target.value) || 8,
+                  }))
+                }
+                className="w-20 px-2.5 py-1.5 bg-slate-900 border border-cyan-500/40 rounded-lg text-sm font-mono font-black text-cyan-300 focus:outline-none"
+              />
+              <span className="text-xs text-slate-400 font-mono">seconds</span>
+            </div>
+            <p className="text-[10px] text-slate-400">Cycles active bulletins (Default: 8s)</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          {panelSavedNotice ? (
+            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+              <Check className="w-4 h-4" />
+              <span>Panel rotation intervals saved and synced!</span>
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">
+              Each panel cycles independently on its own timer on the TV dashboard
+            </span>
+          )}
+
+          <button
+            type="submit"
+            className="px-5 py-2 text-xs font-black text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+          >
+            Save Panel Intervals
+          </button>
+        </div>
+      </form>
 
       {/* Sponsors & Acknowledgements Manager */}
       <div className="p-6 rounded-2xl bg-slate-900/80 border border-white/10 shadow-xl space-y-4">

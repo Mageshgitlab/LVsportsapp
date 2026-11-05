@@ -215,39 +215,99 @@ class HybridDataService implements IDataService {
 
   private sanitizeData(raw: CarnivalData): CarnivalData {
     let rawSlides = raw.settings?.slides || INITIAL_DATA.settings.slides;
-    // Filter out leaders, sponsors, and teams_overview
-    rawSlides = rawSlides.filter(
-      (s: any) => s.id !== 'leaders' && s.id !== 'sponsors' && s.id !== 'teams_overview'
+
+    // Remove full-page slides that now duplicate the dashboard panels
+    const duplicateIds = new Set(['schedule', 'fixtures', 'leaderboard', 'results', 'announcements', 'leaders', 'sponsors']);
+    rawSlides = rawSlides.filter((s: any) => !duplicateIds.has(s.id));
+
+    // Ensure hero is present
+    if (!rawSlides.some((s: any) => s.id === 'hero')) {
+      rawSlides.unshift({ id: 'hero' as const, title: 'Welcome & Championship Showcase', enabled: true, order: 1, durationSec: 10 });
+    }
+
+    rawSlides = rawSlides.map((slide: any) =>
+      slide.id === 'hero' && slide.durationSec === 8 ? { ...slide, durationSec: 10 } : slide
     );
 
-    if (!rawSlides.some((s: any) => s.id === 'fixtures')) {
-      const scheduleIdx = rawSlides.findIndex((s: any) => s.id === 'schedule');
-      const fixturesSlide = { id: 'fixtures' as const, title: 'Carrom Doubles Fixtures', enabled: true, order: 8 };
-      if (scheduleIdx !== -1) {
-        rawSlides.splice(scheduleIdx + 1, 0, fixturesSlide);
-      } else {
-        rawSlides.push(fixturesSlide);
-      }
+    // Ensure live_dashboard is present right after hero
+    if (!rawSlides.some((s: any) => s.id === 'live_dashboard')) {
+      rawSlides.splice(1, 0, {
+        id: 'live_dashboard' as const,
+        title: 'Live Tournament Dashboard',
+        enabled: true,
+        order: 2,
+        durationSec: 60,
+      });
     }
 
-    // Ensure leaderboard (points table) is the 2nd slide right after hero
-    const lbIdx = rawSlides.findIndex((s: any) => s.id === 'leaderboard');
-    if (lbIdx !== -1 && lbIdx !== 1) {
-      const [lbSlide] = rawSlides.splice(lbIdx, 1);
+    // Ensure teams_overview is present
+    if (!rawSlides.some((s: any) => s.id === 'teams_overview')) {
+      rawSlides.splice(2, 0, {
+        id: 'teams_overview' as const,
+        title: 'Teams Overview',
+        enabled: true,
+        order: 3,
+        durationSec: 10,
+      });
+    }
+
+    // Ensure team roster slides are present
+    const teamIds = ['team_a', 'team_b', 'team_c', 'team_d'];
+    const teamTitles: Record<string, string> = {
+      team_a: 'Team A - Pardus',
+      team_b: 'Team B - Falcon Fury',
+      team_c: 'Team C - Stormbreakers',
+      team_d: 'Team D - Tiger Ka Hukum',
+    };
+    teamIds.forEach((tId) => {
+      if (!rawSlides.some((s: any) => s.id === tId)) {
+        rawSlides.push({
+          id: tId as any,
+          title: teamTitles[tId] || tId,
+          enabled: true,
+          order: rawSlides.length + 1,
+          durationSec: 12,
+        });
+      }
+    });
+
+    // Ensure live_dashboard is the 2nd slide
+    const ldIdx = rawSlides.findIndex((s: any) => s.id === 'live_dashboard');
+    if (ldIdx !== -1 && ldIdx !== 1) {
+      const [ldSlide] = rawSlides.splice(ldIdx, 1);
       const heroIdx = rawSlides.findIndex((s: any) => s.id === 'hero');
       if (heroIdx !== -1) {
-        rawSlides.splice(heroIdx + 1, 0, lbSlide);
+        rawSlides.splice(heroIdx + 1, 0, ldSlide);
       } else {
-        rawSlides.unshift(lbSlide);
+        rawSlides.unshift(ldSlide);
       }
     }
 
-    // re-order sequentially
-    rawSlides = rawSlides.map((s: any, idx: number) => ({ ...s, order: idx + 1 }));
+    // Assign per-slide durations if missing
+    const defaultDurations: Record<string, number> = {
+      hero: 8,
+      live_dashboard: 60,
+      teams_overview: 10,
+      team_a: 12,
+      team_b: 12,
+      team_c: 12,
+      team_d: 12,
+    };
+
+    rawSlides = rawSlides.map((s: any, idx: number) => ({
+      ...s,
+      order: idx + 1,
+      durationSec: s.durationSec && s.durationSec > 0 ? s.durationSec : (defaultDurations[s.id] || 10),
+    }));
 
     const sanitizedSettings = {
       ...INITIAL_DATA.settings,
       ...(raw.settings || {}),
+      panelIntervals: {
+        gamesScheduleSec: raw.settings?.panelIntervals?.gamesScheduleSec || 8,
+        fixturesSec: raw.settings?.panelIntervals?.fixturesSec || 10,
+        announcementsSec: raw.settings?.panelIntervals?.announcementsSec || 8,
+      },
       slides: rawSlides,
     };
 

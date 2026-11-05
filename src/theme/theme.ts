@@ -3,33 +3,36 @@
  * LV Sports Carnival
  */
 
+import { ASSETS } from '../config/assets';
+
 export interface ThemeSettings {
   soundEnabled: boolean;
   soundVolume: number; // 0 to 1
   effectsIntensity: 'low' | 'medium' | 'high';
+  backgroundEnabled: boolean;
   plainDarkFallback: boolean;
 }
 
 export const THEME_COLORS = {
-  canvasBg: '#070A1E',
-  canvasDeep: '#050716',
-  panelBg: 'rgba(15, 20, 48, 0.85)',
-  panelBorder: 'rgba(0, 240, 255, 0.25)',
-  panelGlow: 'rgba(0, 240, 255, 0.15)',
+  canvasBg: '#0b0b0d',
+  canvasDeep: '#060607',
+  panelBg: 'rgba(20, 17, 15, 0.9)',
+  panelBorder: 'rgba(212, 160, 23, 0.45)',
+  panelGlow: 'rgba(193, 18, 31, 0.22)',
   
   // High-Energy Fighting Game Accents
-  neonCyan: '#00F0FF',
-  neonViolet: '#A855F7',
-  neonPink: '#EC4899',
-  neonAmber: '#F59E0B',
-  neonEmerald: '#10B981',
-  neonCrimson: '#EF4444',
-  goldBright: '#FBBF24',
+  neonCyan: '#5EC8FF',
+  neonViolet: '#8B7CF6',
+  neonPink: '#D36D7D',
+  neonAmber: '#FF6B00',
+  neonEmerald: '#8CA870',
+  neonCrimson: '#C1121F',
+  goldBright: '#D4A017',
 
   // UI Surfaces
-  surfaceDark: '#0D1129',
-  surfaceLight: '#1E2548',
-  borderGlass: 'rgba(255, 255, 255, 0.12)',
+  surfaceDark: '#1a1512',
+  surfaceLight: '#2a211c',
+  borderGlass: 'rgba(212, 160, 23, 0.22)',
 };
 
 export const THEME_FONTS = {
@@ -56,10 +59,10 @@ export const TEAM_STYLES: Record<string, TeamStyle> = {
     characterName: 'Pardus',
     codename: 'SOLAR PANTHER',
     themeStyle: 'Solar Overdrive',
-    primaryColor: '#F59E0B', // Cyber Amber / Neon Orange
-    secondaryColor: '#EA580C',
-    accentColor: '#FEF08A',
-    glowColor: 'rgba(245, 158, 11, 0.6)',
+    primaryColor: '#FF6B00',
+    secondaryColor: '#C84D00',
+    accentColor: '#F5C14A',
+    glowColor: 'rgba(255, 107, 0, 0.55)',
     symbol: 'Panther',
     tagline: 'PREDATORY SPEED & SOLAR FURY',
   },
@@ -67,10 +70,10 @@ export const TEAM_STYLES: Record<string, TeamStyle> = {
     characterName: 'Falcon Fury',
     codename: 'CYBER FALCON',
     themeStyle: 'Supersonic Wing',
-    primaryColor: '#00F0FF', // Neon Cyan / Electric Blue
-    secondaryColor: '#2563EB',
-    accentColor: '#E0F2FE',
-    glowColor: 'rgba(0, 240, 255, 0.6)',
+    primaryColor: '#5EC8FF',
+    secondaryColor: '#2C8FD0',
+    accentColor: '#EAF7FF',
+    glowColor: 'rgba(94, 200, 255, 0.55)',
     symbol: 'Falcon',
     tagline: 'VELOCITY UNBOUND & APEX CONTROL',
   },
@@ -78,10 +81,10 @@ export const TEAM_STYLES: Record<string, TeamStyle> = {
     characterName: 'Stormbreakers',
     codename: 'STORMBREAKER AXE',
     themeStyle: 'Thunder Vanguard',
-    primaryColor: '#A855F7', // Electric Violet / Cosmic Purple
-    secondaryColor: '#06B6D4',
-    accentColor: '#F3E8FF',
-    glowColor: 'rgba(168, 85, 247, 0.65)',
+    primaryColor: '#8D59E6',
+    secondaryColor: '#C7B7FF',
+    accentColor: '#F7F3FF',
+    glowColor: 'rgba(141, 89, 230, 0.55)',
     symbol: 'Thor Stormbreaker',
     tagline: 'FORGED IN HEARTS OF DYING STARS',
   },
@@ -89,10 +92,10 @@ export const TEAM_STYLES: Record<string, TeamStyle> = {
     characterName: 'Tiger Ka Hukum',
     codename: 'IMPERIAL TIGER',
     themeStyle: 'Crimson Roar',
-    primaryColor: '#EF4444', // Radiant Crimson Red
-    secondaryColor: '#DC2626',
-    accentColor: '#FBBF24',
-    glowColor: 'rgba(239, 68, 68, 0.65)',
+    primaryColor: '#C1121F',
+    secondaryColor: '#8B0D17',
+    accentColor: '#D4A017',
+    glowColor: 'rgba(193, 18, 31, 0.6)',
     symbol: 'Tiger',
     tagline: 'MAJESTIC RULER OF THE ARENA',
   },
@@ -101,20 +104,23 @@ export const TEAM_STYLES: Record<string, TeamStyle> = {
 const THEME_STORAGE_KEY = 'lv_carnival_theme_settings_v2';
 
 export const getStoredThemeSettings = (): ThemeSettings => {
+  const defaults: ThemeSettings = {
+    soundEnabled: false,
+    soundVolume: 0.6,
+    effectsIntensity: 'high',
+    backgroundEnabled: true,
+    plainDarkFallback: false,
+  };
+
   try {
     const raw = localStorage.getItem(THEME_STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      return { ...defaults, ...JSON.parse(raw) };
     }
   } catch (e) {
     console.warn('Failed to read theme settings:', e);
   }
-  return {
-    soundEnabled: false,
-    soundVolume: 0.6,
-    effectsIntensity: 'high',
-    plainDarkFallback: false,
-  };
+  return defaults;
 };
 
 export const saveThemeSettings = (settings: ThemeSettings): void => {
@@ -131,6 +137,7 @@ export const saveThemeSettings = (settings: ThemeSettings): void => {
  */
 class TournamentSoundFX {
   private ctx: AudioContext | null = null;
+  private audioEls: Partial<Record<'gong' | 'fight' | 'victory' | 'round', HTMLAudioElement>> = {};
 
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -148,12 +155,38 @@ class TournamentSoundFX {
     const settings = getStoredThemeSettings();
     if (!settings.soundEnabled) return;
 
+    const assetMap: Record<'gong' | 'fight' | 'victory' | 'round', string> = {
+      gong: ASSETS.audio.gong,
+      fight: ASSETS.audio.fight,
+      victory: ASSETS.audio.victory,
+      round: ASSETS.audio.roundStart,
+    };
+
+    const src = assetMap[sound];
+    if (src) {
+      if (!this.audioEls[sound]) {
+        this.audioEls[sound] = new Audio(src);
+      }
+      const clip = this.audioEls[sound]!;
+      clip.volume = Math.min(1, Math.max(0, settings.soundVolume));
+      clip.currentTime = 0;
+      clip.play().catch(() => {
+        this.playSynth(sound, settings.soundVolume);
+      });
+      return;
+    }
+
+    this.playSynth(sound, settings.soundVolume);
+  }
+
+  private playSynth(sound: 'gong' | 'fight' | 'victory' | 'round', volume: number): void {
+
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
     const now = ctx.currentTime;
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(settings.soundVolume * 0.7, now);
+    masterGain.gain.setValueAtTime(volume * 0.7, now);
     masterGain.connect(ctx.destination);
 
     if (sound === 'fight') {

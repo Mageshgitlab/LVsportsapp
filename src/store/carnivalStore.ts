@@ -13,10 +13,24 @@ import {
   SlideId,
   Sponsor,
   PairMatch,
+  FixtureTie,
   GameFixtures,
+  PanelIntervals,
+  FixtureMode,
+  GroupFixtureFormat,
+  GameWiseFixture,
 } from '../types';
 import { dataService } from '../services/dataService';
 import { INITIAL_DATA } from '../data/seed';
+
+const PAIR_GAME_NAMES = new Set(['carrom', 'foosball', 'batmitoon', 'badminton', 'snooker', 'cricket']);
+
+const inferFixtureMode = (gameName: string): FixtureMode => {
+  const normalized = (gameName || '').trim().toLowerCase();
+  if (normalized === 'football' || normalized === 'volleyball') return 'group';
+  if (PAIR_GAME_NAMES.has(normalized)) return 'pair';
+  return 'pair';
+};
 
 export function calculateLeaderboard(teams: Team[], games: Game[]): TeamScoreStat[] {
   const statsMap = new Map<string, { first: number; second: number; played: number; points: number }>();
@@ -84,14 +98,16 @@ export function getEligibleSlides(data: CarnivalData): SlideConfig[] {
       case 'results':
         // Show results if any game has finished or any results assigned, or show games with results
         return data.games.length > 0;
+      case 'teams_overview':
+        return false;
       case 'team_a':
-        return data.teams.some((t) => t.id === 'team-a');
+        return false;
       case 'team_b':
-        return data.teams.some((t) => t.id === 'team-b');
+        return false;
       case 'team_c':
-        return data.teams.some((t) => t.id === 'team-c');
+        return false;
       case 'team_d':
-        return data.teams.some((t) => t.id === 'team-d');
+        return false;
       case 'fixtures':
         return !!data.fixtures && Array.isArray(data.fixtures.rounds) && data.fixtures.rounds.length > 0;
       default:
@@ -128,9 +144,23 @@ interface CarnivalStoreState {
 
   // Fixtures actions
   updatePairMatch: (roundNumber: number, tieId: string, matchId: string, patch: Partial<PairMatch>) => Promise<void>;
+  addGroupMatchup: (roundNumber: number) => Promise<void>;
+  addPairMatchup: (roundNumber: number) => Promise<void>;
+  deleteFixtureTie: (roundNumber: number, tieId: string) => Promise<void>;
+  updateFixtureTie: (roundNumber: number, tieId: string, patch: Partial<Pick<FixtureTie, 'teamAId' | 'teamBId'>>) => Promise<void>;
   assignPairPlayer: (teamId: TeamId, pairNumber: number, playerIndex: 0 | 1, memberId: string) => Promise<void>;
+  updatePairName: (gameId: string, teamId: TeamId, pairNumber: number, name: string) => Promise<void>;
   shuffleFixtures: (tieId?: string) => Promise<void>;
   setFixturesGame: (gameId: string, gameName: string, title?: string) => Promise<void>;
+  setFixturesMode: (mode: FixtureMode) => Promise<void>;
+  setTeamPairCount: (teamId: TeamId, pairCount: number) => Promise<void>;
+  updateRoundTitle: (roundNumber: number, title: string) => Promise<void>;
+  addFixtureRound: () => Promise<void>;
+  deleteFixtureRound: (roundNumber: number) => Promise<void>;
+  setGroupFormat: (format: GroupFixtureFormat) => Promise<void>;
+  addGameWiseFixture: (fixture: Omit<GameWiseFixture, 'id'>) => Promise<void>;
+  updateGameWiseFixture: (fixtureId: string, patch: Partial<GameWiseFixture>) => Promise<void>;
+  deleteGameWiseFixture: (fixtureId: string) => Promise<void>;
 
   // Announcements
   addAnnouncement: (announcement: Omit<Announcement, 'id'>) => Promise<void>;
@@ -145,6 +175,8 @@ interface CarnivalStoreState {
   // Slide configuration
   setSlidesOrder: (slides: SlideConfig[]) => Promise<void>;
   toggleSlide: (slideId: SlideId, enabled: boolean) => Promise<void>;
+  updateSlideDuration: (slideId: SlideId, durationSec: number) => Promise<void>;
+  updatePanelIntervals: (intervals: Partial<PanelIntervals>) => Promise<void>;
 
   // Backup & reset
   resetToDefault: () => Promise<void>;
@@ -331,6 +363,78 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
     set({ data: updated });
   },
 
+  addGroupMatchup: async (roundNumber) => {
+    const current = get().data;
+    const round = current.fixtures?.rounds.find((item) => item.roundNumber === roundNumber);
+    if (!current.fixtures || !round || current.teams.length < 2) return;
+    const firstTwo = current.teams.slice(0, 2);
+    const tieId = `group-${roundNumber}-${Date.now()}`;
+    const tie: FixtureTie = {
+      id: tieId,
+      tieNumber: round.ties.length + 1,
+      roundNumber,
+      teamAId: firstTwo[0].id,
+      teamBId: firstTwo[1].id,
+      matches: [{ id: `group-match-${Date.now()}`, pairANumber: 1, pairBNumber: 1, status: 'upcoming', winnerTeamId: null }],
+    };
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: { ...current.fixtures, rounds: current.fixtures.rounds.map((item) => item.roundNumber === roundNumber ? { ...item, ties: [...item.ties, tie] } : item) },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  addPairMatchup: async (roundNumber) => {
+    const current = get().data;
+    const round = current.fixtures?.rounds.find((item) => item.roundNumber === roundNumber);
+    if (!current.fixtures || !round || current.teams.length < 2) return;
+    const [teamA, teamB] = current.teams;
+    const timestamp = Date.now();
+    const tie: FixtureTie = {
+      id: `pair-${roundNumber}-${timestamp}`,
+      tieNumber: round.ties.length + 1,
+      roundNumber,
+      teamAId: teamA.id,
+      teamBId: teamB.id,
+      matches: Array.from({ length: 4 }, (_, index) => ({
+        id: `pair-match-${roundNumber}-${timestamp}-${index + 1}`,
+        pairANumber: index + 1,
+        pairBNumber: index + 1,
+        status: 'upcoming' as GameStatus,
+        winnerTeamId: null,
+      })),
+    };
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: { ...current.fixtures, rounds: current.fixtures.rounds.map((item) => item.roundNumber === roundNumber ? { ...item, ties: [...item.ties, tie] } : item) },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  deleteFixtureTie: async (roundNumber, tieId) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: { ...current.fixtures, rounds: current.fixtures.rounds.map((round) => round.roundNumber !== roundNumber ? round : { ...round, ties: round.ties.filter((tie) => tie.id !== tieId) }) },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  updateFixtureTie: async (roundNumber, tieId, patch) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: { ...current.fixtures, rounds: current.fixtures.rounds.map((round) => round.roundNumber !== roundNumber ? round : { ...round, ties: round.ties.map((tie) => tie.id === tieId ? { ...tie, ...patch } : tie) }) },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
   assignPairPlayer: async (teamId, pairNumber, playerIndex, memberId) => {
     const current = get().data;
     if (!current.fixtures) return;
@@ -356,6 +460,21 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
     set({ data: updated });
   },
 
+  updatePairName: async (gameId, teamId, pairNumber, name) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+    const pairNameKey = `${gameId}_${teamId}_pair_${pairNumber}`;
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        pairNames: { ...(current.fixtures.pairNames || {}), [pairNameKey]: name },
+      },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
   shuffleFixtures: async (targetTieId?: string) => {
     const current = get().data;
     if (!current.fixtures) return;
@@ -373,8 +492,16 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
       const updatedTies = round.ties.map((tie) => {
         if (targetTieId && tie.id !== targetTieId) return tie;
 
-        const aPairs = shuffleArray([1, 2, 3, 4]);
-        const bPairs = shuffleArray([1, 2, 3, 4]);
+        const teamPairCounts = current.fixtures.teamPairCounts || {};
+        const aCount = Math.max(1, teamPairCounts[tie.teamAId] || 4);
+        const bCount = Math.max(1, teamPairCounts[tie.teamBId] || 4);
+        const aBase = Array.from({ length: aCount }, (_, idx) => idx + 1);
+        const bBase = Array.from({ length: bCount }, (_, idx) => idx + 1);
+
+        const shuffledA = shuffleArray(aBase);
+        const shuffledB = shuffleArray(bBase);
+        const aPairs = tie.matches.map((_, idx) => shuffledA[idx % shuffledA.length]);
+        const bPairs = tie.matches.map((_, idx) => shuffledB[idx % shuffledB.length]);
 
         const updatedMatches = tie.matches.map((match, idx) => ({
           ...match,
@@ -409,8 +536,244 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
         gameId,
         gameName,
         title: title || `${gameName.toUpperCase()} FIXTURES`,
+        mode: inferFixtureMode(gameName),
+        groupFormat: current.fixtures.groupFormat || 'round_robin',
       },
     };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  setFixturesMode: async (mode) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        mode,
+      },
+    };
+
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  setTeamPairCount: async (teamId, pairCount) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const clampedCount = Math.max(1, Math.min(12, Math.floor(pairCount)));
+    const updatedPairCounts = {
+      ...(current.fixtures.teamPairCounts || {}),
+      [teamId]: clampedCount,
+    };
+
+    const updatedPairPlayers = { ...(current.fixtures.pairPlayers || {}) };
+    Object.keys(updatedPairPlayers).forEach((key) => {
+      if (key.startsWith(`${teamId}_pair_`)) {
+        const pairNum = Number(key.split('_').pop());
+        if (Number.isFinite(pairNum) && pairNum > clampedCount) {
+          delete updatedPairPlayers[key];
+        }
+      }
+    });
+
+    const updatedRounds = current.fixtures.rounds.map((round) => ({
+      ...round,
+      ties: round.ties.map((tie) => {
+        if (tie.teamAId !== teamId && tie.teamBId !== teamId) return tie;
+        return {
+          ...tie,
+          matches: tie.matches.map((match) => ({
+            ...match,
+            pairANumber:
+              tie.teamAId === teamId ? Math.min(match.pairANumber, clampedCount) : match.pairANumber,
+            pairBNumber:
+              tie.teamBId === teamId ? Math.min(match.pairBNumber, clampedCount) : match.pairBNumber,
+          })),
+        };
+      }),
+    }));
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        teamPairCounts: updatedPairCounts,
+        pairPlayers: updatedPairPlayers,
+        rounds: updatedRounds,
+      },
+    };
+
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  updateRoundTitle: async (roundNumber, title) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        rounds: current.fixtures.rounds.map((round) =>
+          round.roundNumber === roundNumber
+            ? {
+                ...round,
+                title,
+              }
+            : round
+        ),
+      },
+    };
+
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  addFixtureRound: async () => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const sortedRounds = [...current.fixtures.rounds].sort((a, b) => a.roundNumber - b.roundNumber);
+    const nextRoundNumber = sortedRounds.length > 0 ? sortedRounds[sortedRounds.length - 1].roundNumber + 1 : 1;
+
+    const teamIds = current.teams.map((team) => team.id);
+    const tiePairs: Array<[string, string]> = [];
+    if (current.fixtures.mode !== 'group') {
+      for (let idx = 0; idx + 1 < teamIds.length; idx += 2) tiePairs.push([teamIds[idx], teamIds[idx + 1]]);
+    }
+
+    const newRound = {
+      roundNumber: nextRoundNumber,
+      title: `Round ${nextRoundNumber}`,
+      ties: tiePairs.map(([teamAId, teamBId], tieIdx) => ({
+        id: `tie-r${nextRoundNumber}-${tieIdx + 1}-${Date.now()}`,
+        tieNumber: (current.fixtures.rounds.flatMap((r) => r.ties).length || 0) + tieIdx + 1,
+        roundNumber: nextRoundNumber,
+        teamAId,
+        teamBId,
+        matches: Array.from({ length: 4 }, (_, matchIdx) => ({
+          id: `m-r${nextRoundNumber}-${tieIdx + 1}-${matchIdx + 1}-${Date.now()}`,
+          pairANumber: matchIdx + 1,
+          pairBNumber: matchIdx + 1,
+          status: 'upcoming' as GameStatus,
+          winnerTeamId: null,
+        })),
+      })),
+    };
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        rounds: [...current.fixtures.rounds, newRound],
+      },
+    };
+
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  deleteFixtureRound: async (roundNumber) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+    if (current.fixtures.rounds.length <= 1) return;
+
+    const filtered = current.fixtures.rounds
+      .filter((round) => round.roundNumber !== roundNumber)
+      .sort((a, b) => a.roundNumber - b.roundNumber)
+      .map((round, idx) => ({
+        ...round,
+        roundNumber: idx + 1,
+        title: round.title || `Round ${idx + 1}`,
+        ties: round.ties.map((tie) => ({
+          ...tie,
+          roundNumber: idx + 1,
+        })),
+      }));
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        rounds: filtered,
+      },
+    };
+
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  setGroupFormat: async (format) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        groupFormat: format,
+      },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  addGameWiseFixture: async (fixtureData) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const newFixture: GameWiseFixture = {
+      ...fixtureData,
+      id: `gwf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    };
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        gameWiseFixtures: [...(current.fixtures.gameWiseFixtures || []), newFixture],
+      },
+    };
+
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  updateGameWiseFixture: async (fixtureId, patch) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        gameWiseFixtures: (current.fixtures.gameWiseFixtures || []).map((fixture) =>
+          fixture.id === fixtureId ? { ...fixture, ...patch } : fixture
+        ),
+      },
+    };
+
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  deleteGameWiseFixture: async (fixtureId) => {
+    const current = get().data;
+    if (!current.fixtures) return;
+
+    const updated: CarnivalData = {
+      ...current,
+      fixtures: {
+        ...current.fixtures,
+        gameWiseFixtures: (current.fixtures.gameWiseFixtures || []).filter((fixture) => fixture.id !== fixtureId),
+      },
+    };
+
     await dataService.saveData(updated);
     set({ data: updated });
   },
@@ -499,6 +862,47 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
     const updated: CarnivalData = {
       ...current,
       settings: { ...current.settings, slides: updatedSlides },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  updateSlideDuration: async (slideId, durationSec) => {
+    const current = get().data;
+    const updatedSlides = current.settings.slides.map((s) =>
+      s.id === slideId ? { ...s, durationSec: Math.max(2, durationSec) } : s
+    );
+    const updatedDurations = {
+      ...(current.settings.slideDurations || {}),
+      [slideId]: Math.max(2, durationSec),
+    };
+    const updated: CarnivalData = {
+      ...current,
+      settings: {
+        ...current.settings,
+        slides: updatedSlides,
+        slideDurations: updatedDurations,
+      },
+    };
+    await dataService.saveData(updated);
+    set({ data: updated });
+  },
+
+  updatePanelIntervals: async (intervals) => {
+    const current = get().data;
+    const updated: CarnivalData = {
+      ...current,
+      settings: {
+        ...current.settings,
+        panelIntervals: {
+          ...(current.settings.panelIntervals || {
+            gamesScheduleSec: 8,
+            fixturesSec: 10,
+            announcementsSec: 8,
+          }),
+          ...intervals,
+        },
+      },
     };
     await dataService.saveData(updated);
     set({ data: updated });

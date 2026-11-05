@@ -1,124 +1,326 @@
-/* Modern Fighting Video Game Theme (LV Sports Carnival) */
+/* Arena fighter-inspired UI theme tokens and scoped styles */
 
 :root {
-  --fg-canvas-bg: #070A1E;
-  --fg-panel-bg: rgba(13, 17, 41, 0.9);
-  --fg-cyan: #00F0FF;
-  --fg-violet: #A855F7;
-  --fg-orange: #F59E0B;
-  --fg-crimson: #EF4444;
-  --fg-gold: #FBBF24;
+  --fg-canvas-bg: #0b0b0d;
+  --fg-canvas-deep: #060607;
+  --fg-panel-bg: rgba(20, 17, 15, 0.9);
+  --fg-panel-topline: rgba(193, 18, 31, 0.85);
+  --fg-panel-border: rgba(212, 160, 23, 0.42);
+  --fg-panel-border-strong: rgba(212, 160, 23, 0.62);
+  --fg-text: #f0ece4;
+  --fg-muted: #c8bca8;
+  --fg-red: #c1121f;
+  --fg-orange: #ff6b00;
+  --fg-gold: #d4a017;
+  --fg-ice: #5ec8ff;
+
+  /* Keep existing typography scale and layout rhythm intact */
+  --fs-body: 32px;
+  --fs-list: 32px;
+  --fs-row: 36px;
+  --fs-name: 40px;
+  --fs-subheading: 48px;
+  --fs-section: 58px;
+  --fs-title: 84px;
+  --fs-score: 96px;
+  --fs-score-lg: 112px;
+  --fs-badge: 24px;
 }
 
-/* Base Body with Deep Indigo/Navy Gradient */
+.tv-font-body { font-size: var(--fs-body); line-height: 1.25; }
+.tv-font-list { font-size: var(--fs-list); line-height: 1.25; }
+.tv-font-row { font-size: var(--fs-row); line-height: 1.2; font-weight: 700; }
+.tv-font-name { font-size: var(--fs-name); line-height: 1.15; font-weight: 800; }
+.tv-font-subheading { font-size: var(--fs-subheading); line-height: 1.15; font-weight: 800; }
+.tv-font-section { font-size: var(--fs-section); line-height: 1.1; font-weight: 900; }
+.tv-font-title { font-size: var(--fs-title); line-height: 1.05; font-weight: 900; }
+.tv-font-score { font-size: var(--fs-score); line-height: 1; font-weight: 900; }
+.tv-font-score-lg { font-size: var(--fs-score-lg); line-height: 1; font-weight: 900; }
+.tv-font-badge { font-size: var(--fs-badge); line-height: 1; font-weight: 800; }
+
 body {
-  background: radial-gradient(circle at 50% 20%, #12183A 0%, #070A1E 60%, #04050F 100%);
-  color: #F8FAFC;
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 107, 0, 0.07) 0%, transparent 40%),
+    radial-gradient(circle at 80% 10%, rgba(193, 18, 31, 0.1) 0%, transparent 35%),
+    linear-gradient(180deg, #121012 0%, var(--fg-canvas-bg) 40%, var(--fg-canvas-deep) 100%);
+  color: var(--fg-text);
+  font-family: 'Rajdhani', 'Oswald', 'Plus Jakarta Sans', system-ui, sans-serif;
   min-height: 100vh;
 }
 
-/* Title Font */
-.fg-title-font {
-  font-family: 'Rajdhani', 'Outfit', sans-serif;
+/* Shared beveled panel treatment for TV and admin cards */
+.arena-tv-theme [class*='rounded-xl'][class*='border'],
+.arena-tv-theme [class*='rounded-lg'][class*='border'],
+.arena-admin-theme [class*='rounded-xl'][class*='border'],
+.arena-admin-theme [class*='rounded-lg'][class*='border'] {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    linear-gradient(120deg, rgba(255, 107, 0, 0.08), rgba(193, 18, 31, 0.06) 50%, rgba(0, 0, 0, 0.18));
+  border-color: var(--fg-panel-border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 231, 180, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 8px 22px rgba(0, 0, 0, 0.45);
+  position: relative;
+}
+
+.arena-tv-theme [class*='rounded-xl'][class*='border']::before,
+.arena-tv-theme [class*='rounded-lg'][class*='border']::before,
+.arena-admin-theme [class*='rounded-xl'][class*='border']::before,
+.arena-admin-theme [class*='rounded-lg'][class*='border']::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--fg-panel-topline), transparent);
+  pointer-events: none;
+}
+
+/* TV atmosphere overlays (subtle, GPU-light) */
+.arena-tv-theme::before,
+.arena-tv-theme::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.arena-bg-off::before,
+.arena-bg-off::after {
+  display: none;
+}
+
+.arena-tv-theme::before {
+  background:
+    var(--arena-bg-image-main, none) center center / cover no-repeat,
+    var(--arena-bg-image-overlay, none) center center / cover no-repeat,
+    radial-gradient(circle at 10% 90%, rgba(255, 107, 0, 0.07), transparent 28%),
+    radial-gradient(circle at 90% 10%, rgba(193, 18, 31, 0.08), transparent 26%);
+  mix-blend-mode: normal;
+  animation: none;
+}
+
+.arena-tv-theme::after {
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(255, 140, 36, 0.2) 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 72%, rgba(255, 170, 70, 0.15) 0 1px, transparent 2px),
+    radial-gradient(circle at 85% 22%, rgba(255, 190, 110, 0.16) 0 1px, transparent 2px);
+  background-size: 220px 220px, 260px 260px, 180px 180px;
+  animation: none;
+  opacity: 0.35;
+}
+
+@keyframes arenaFogDrift {
+  0% { transform: translate3d(0, 0, 0); opacity: 0.6; }
+  100% { transform: translate3d(0, -8px, 0); opacity: 0.85; }
+}
+
+@keyframes arenaEmbers {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-24px); }
+}
+
+/* Ensure content stays above overlays */
+.arena-tv-theme > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Engraved metallic title treatment */
+.arena-tv-theme h2,
+.arena-admin-theme h2,
+.arena-admin-theme h3 {
+  font-family: 'Cinzel Decorative', 'Metal Mania', 'Rajdhani', sans-serif !important;
   letter-spacing: 0.08em;
-  font-weight: 900;
-  text-transform: uppercase;
+  text-shadow:
+    0 1px 0 rgba(20, 15, 8, 0.9),
+    0 0 8px rgba(212, 160, 23, 0.2);
 }
 
-.fg-heading-font {
-  font-family: 'Rajdhani', 'Outfit', sans-serif;
-  letter-spacing: 0.05em;
-  font-weight: 800;
-}
-
-.fg-mono-font {
-  font-family: 'Rajdhani', 'JetBrains Mono', monospace;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-/* Glossy Neon Angled Panels (Fighting Game Style) */
-.fg-card {
-  background: linear-gradient(135deg, rgba(20, 26, 62, 0.85) 0%, rgba(10, 13, 34, 0.95) 100%);
-  border: 1px solid rgba(0, 240, 255, 0.25);
-  box-shadow: 
-    0 10px 30px -5px rgba(0, 0, 0, 0.8),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    0 0 15px rgba(0, 240, 255, 0.08);
-  backdrop-filter: blur(12px);
+.arena-tv-theme h2 {
+  color: transparent !important;
+  background-image: linear-gradient(180deg, #f8d889 0%, #d4a017 45%, #8f6a17 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
   position: relative;
 }
 
-.fg-card-amber {
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+.arena-tv-theme h2::before,
+.arena-tv-theme h2::after {
+  content: '✦';
+  font-size: 0.45em;
+  color: #8f6a17;
+  text-shadow: 0 0 6px rgba(212, 160, 23, 0.45);
+  vertical-align: middle;
+  margin: 0 0.35em;
 }
 
-.fg-card-cyan {
-  border-color: rgba(0, 240, 255, 0.5);
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.fg-card-violet {
-  border-color: rgba(168, 85, 247, 0.5);
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.fg-card-crimson {
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-/* Chamfered Angled Cuts */
-.fg-chamfer {
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
-}
-
-.fg-chamfer-sm {
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-}
-
-/* Health Bar Points Gauge */
-.fg-healthbar-track {
-  height: 20px;
-  background: rgba(5, 7, 20, 0.9);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+/* Burning gold header effect only where explicitly applied */
+.arena-tv-theme .arena-burn-header {
   position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.9);
+  filter: saturate(1.18) contrast(1.08);
+  background-image: linear-gradient(180deg, #fff7de 0%, #ffe7a1 32%, #f2c556 68%, #b78620 100%) !important;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.78px rgba(34, 22, 8, 0.78);
+  text-shadow:
+    0 1px 0 rgba(20, 15, 8, 0.98),
+    0 0 10px rgba(255, 223, 130, 0.45),
+    0 0 20px rgba(212, 160, 23, 0.56),
+    0 0 30px rgba(143, 106, 23, 0.34);
+  animation: arenaHeaderBurn 2.7s ease-in-out infinite;
 }
 
-.fg-healthbar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3B82F6 0%, #06B6D4 40%, #10B981 70%, #F59E0B 100%);
-  box-shadow: 0 0 15px rgba(6, 182, 212, 0.7);
-  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+/* Fixture rounds enter independently; old round content is unmounted immediately. */
+.fixture-round-transition {
+  animation: fixtureRoundEnter 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  transform-origin: center top;
 }
 
-/* Versus Badge Screen Cut */
-.fg-vs-badge {
-  clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
+@keyframes fixtureRoundEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Smooth Slide Flash */
+@keyframes arenaHeaderBurn {
+  0% {
+    text-shadow:
+      0 1px 0 rgba(20, 15, 8, 0.98),
+      0 0 9px rgba(255, 223, 130, 0.4),
+      0 0 16px rgba(212, 160, 23, 0.44),
+      0 0 24px rgba(143, 106, 23, 0.22);
+  }
+  50% {
+    text-shadow:
+      0 1px 0 rgba(20, 15, 8, 1),
+      0 0 13px rgba(255, 231, 166, 0.68),
+      0 0 24px rgba(212, 160, 23, 0.72),
+      0 0 36px rgba(143, 106, 23, 0.45);
+  }
+  100% {
+    text-shadow:
+      0 1px 0 rgba(20, 15, 8, 0.98),
+      0 0 9px rgba(255, 223, 130, 0.4),
+      0 0 16px rgba(212, 160, 23, 0.44),
+      0 0 24px rgba(143, 106, 23, 0.22);
+  }
+}
+
+/* Header and ticker metal restyle */
+.arena-tv-theme header {
+  background:
+    linear-gradient(180deg, rgba(28, 23, 19, 0.97), rgba(17, 14, 12, 0.95)) !important;
+  border-bottom-color: rgba(212, 160, 23, 0.36) !important;
+}
+
+.arena-tv-theme footer {
+  background: linear-gradient(180deg, #181412, #0f0d0c) !important;
+  border-top-color: rgba(212, 160, 23, 0.42) !important;
+}
+
+.arena-tv-theme footer > div:first-child {
+  background: linear-gradient(90deg, #5a1316 0%, #8f1b23 35%, #c43a1f 100%) !important;
+  border-right-color: rgba(212, 160, 23, 0.48) !important;
+}
+
+.arena-tv-theme .animate-marquee {
+  animation-duration: 42s;
+}
+
+/* Round-style indicators */
+.arena-tv-theme [aria-label^='Go to slide'] {
+  transform: none !important;
+  border-radius: 999px !important;
+}
+
+/* Team faction aura accents */
+.arena-tv-theme [style*='TEAM A'],
+.arena-tv-theme [style*='team-a'] {
+  filter: drop-shadow(0 0 8px rgba(255, 107, 0, 0.35));
+}
+
+.arena-tv-theme [style*='TEAM B'],
+.arena-tv-theme [style*='team-b'] {
+  filter: drop-shadow(0 0 8px rgba(94, 200, 255, 0.3));
+}
+
+.arena-tv-theme [style*='TEAM C'],
+.arena-tv-theme [style*='team-c'] {
+  filter: drop-shadow(0 0 8px rgba(141, 89, 230, 0.3));
+}
+
+.arena-tv-theme [style*='TEAM D'],
+.arena-tv-theme [style*='team-d'] {
+  filter: drop-shadow(0 0 8px rgba(193, 18, 31, 0.3));
+}
+
+/* Admin shell and controls */
+.arena-admin-theme {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 107, 0, 0.09), transparent 30%),
+    radial-gradient(circle at 90% 10%, rgba(193, 18, 31, 0.12), transparent 35%),
+    linear-gradient(180deg, #151213, #0b0b0d 45%, #060607 100%) !important;
+}
+
+.arena-admin-theme header {
+  background: linear-gradient(180deg, rgba(38, 30, 24, 0.95), rgba(18, 16, 14, 0.94)) !important;
+  border-bottom-color: rgba(212, 160, 23, 0.34) !important;
+}
+
+.arena-admin-theme button,
+.arena-admin-theme a {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.arena-admin-theme button:hover,
+.arena-admin-theme a:hover {
+  box-shadow: 0 0 14px rgba(212, 160, 23, 0.18);
+}
+
+/* Fancy ticker separators */
+.arena-tv-theme .arena-feed-separator {
+  color: #ff8c24 !important;
+  text-shadow: 0 0 8px rgba(255, 107, 0, 0.45);
+}
+
+/* Slide flash: stone-slam style */
 @keyframes fg-slide-flash {
-  0% { opacity: 0.35; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0.48;
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
 }
 
 .fg-flash-effect {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.25) 0%, rgba(168, 85, 247, 0.15) 50%, transparent 100%);
+  background:
+    radial-gradient(circle at center, rgba(255, 107, 0, 0.24) 0%, rgba(193, 18, 31, 0.16) 45%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 30%);
   pointer-events: none;
   z-index: 50;
-  animation: fg-slide-flash 0.35s ease-out forwards;
+  animation: fg-slide-flash 0.28s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fg-flash-effect {
+  .arena-tv-theme::before,
+  .arena-tv-theme::after,
+  .fg-flash-effect,
+  .animate-marquee,
+  .arena-tv-theme .arena-burn-header,
+  .fixture-round-transition {
     animation: none !important;
   }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { SlideId } from '../../types';
 import { HeroSlide } from './slides/HeroSlide';
+import { LiveDashboardSlide } from './slides/LiveDashboardSlide';
 import { TeamsOverviewSlide } from './slides/TeamsOverviewSlide';
 import { TeamRosterSlide } from './slides/TeamRosterSlide';
 import { ScheduleSlide } from './slides/ScheduleSlide';
@@ -25,6 +26,8 @@ export const SlideRenderer: React.FC<SlideRendererProps> = ({
   switch (slideId) {
     case 'hero':
       return <HeroSlide />;
+    case 'live_dashboard':
+      return <LiveDashboardSlide />;
     case 'teams_overview':
       return <TeamsOverviewSlide />;
     case 'team_a':

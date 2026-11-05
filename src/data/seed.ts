@@ -1,17 +1,20 @@
 import { CarnivalData, SlideConfig, GameFixtures } from '../types';
 
 export const INITIAL_SLIDES: SlideConfig[] = [
-  { id: 'hero', title: 'Welcome & Championship Showcase', enabled: true, order: 1 },
-  { id: 'leaderboard', title: 'Points Table & Standings', enabled: true, order: 2 },
-  { id: 'team_a', title: 'Team A - Pardus', enabled: true, order: 3 },
-  { id: 'team_b', title: 'Team B - Falcon Fury', enabled: true, order: 4 },
-  { id: 'team_c', title: 'Team C - Stormbreakers', enabled: true, order: 5 },
-  { id: 'team_d', title: 'Team D - Tiger Ka Hukum', enabled: true, order: 6 },
-  { id: 'schedule', title: 'Games Schedule & Venues', enabled: true, order: 7 },
-  { id: 'fixtures', title: 'Carrom Doubles Fixtures', enabled: true, order: 8 },
-  { id: 'results', title: 'Game-Wise Results', enabled: true, order: 9 },
-  { id: 'announcements', title: 'Carnival Announcements', enabled: true, order: 10 },
+  { id: 'hero', title: 'Welcome & Championship Showcase', enabled: true, order: 1, durationSec: 10 },
+  { id: 'live_dashboard', title: 'Live Tournament Dashboard', enabled: true, order: 2, durationSec: 60 },
+  { id: 'teams_overview', title: 'Teams Overview', enabled: true, order: 3, durationSec: 10 },
+  { id: 'team_a', title: 'Team A - Pardus', enabled: true, order: 4, durationSec: 12 },
+  { id: 'team_b', title: 'Team B - Falcon Fury', enabled: true, order: 5, durationSec: 12 },
+  { id: 'team_c', title: 'Team C - Stormbreakers', enabled: true, order: 6, durationSec: 12 },
+  { id: 'team_d', title: 'Team D - Tiger Ka Hukum', enabled: true, order: 7, durationSec: 12 },
 ];
+
+export const DEFAULT_PANEL_INTERVALS = {
+  gamesScheduleSec: 8,
+  fixturesSec: 10,
+  announcementsSec: 8,
+};
 
 export const INITIAL_DATA: CarnivalData = {
   settings: {
@@ -19,9 +22,10 @@ export const INITIAL_DATA: CarnivalData = {
     eventSubtitle: 'Annual Corporate Sports Championship',
     eventDate: 'November 2026',
     venueName: 'Olympic Arena Complex',
-    slideDurationMs: 5000, // 5 seconds default
+    slideDurationMs: 10000,
     slides: INITIAL_SLIDES,
     autoRotate: true,
+    panelIntervals: DEFAULT_PANEL_INTERVALS,
   },
   teams: [
     {
@@ -295,6 +299,24 @@ export const INITIAL_DATA: CarnivalData = {
     gameName: 'Carrom',
     title: 'CARROM FIXTURES',
     subtitle: 'Carrom Doubles League · 4 Pairs per Team · 3 Rounds',
+    mode: 'pair',
+    groupFormat: 'round_robin',
+    teamPairCounts: {
+      'team-a': 4,
+      'team-b': 4,
+      'team-c': 4,
+      'team-d': 4,
+    },
+    gameWiseFixtures: [
+      { id: 'gwf-1', gameId: 'game-3', gameName: 'Cricket', fixtureDate: '2026-11-16', fixtureEndDate: '2026-11-20', roundLabel: 'Tournament', status: 'upcoming' },
+      { id: 'gwf-2', gameId: 'game-6', gameName: 'Volleyball', fixtureDate: '2026-11-23', fixtureEndDate: '2026-11-25', roundLabel: 'Tournament', status: 'upcoming' },
+      { id: 'gwf-3', gameId: 'game-7', gameName: 'Badminton', fixtureDate: '2026-11-30', fixtureEndDate: '2026-12-03', roundLabel: 'Tournament', status: 'upcoming' },
+      { id: 'gwf-4', gameId: 'game-4', gameName: 'Football', fixtureDate: '2026-12-06', fixtureEndDate: '2026-12-08', roundLabel: 'Tournament', status: 'upcoming' },
+      { id: 'gwf-5', gameId: 'game-8', gameName: 'Chess', fixtureDate: '2026-11-16', fixtureEndDate: '2026-11-20', roundLabel: 'Tournament', status: 'upcoming' },
+      { id: 'gwf-6', gameId: 'game-1', gameName: 'Carrom', fixtureDate: '2026-11-17', fixtureEndDate: '2026-11-18', roundLabel: 'Tournament', status: 'upcoming' },
+      { id: 'gwf-7', gameId: 'game-5', gameName: 'Snooker', fixtureDate: '2026-11-23', fixtureEndDate: '2026-11-25', roundLabel: 'Tournament', status: 'upcoming' },
+      { id: 'gwf-8', gameId: 'game-2', gameName: 'Foosball', fixtureDate: '2026-11-30', fixtureEndDate: '2026-12-03', roundLabel: 'Tournament', status: 'upcoming' },
+    ],
     pairPlayers: {
       // Team A - Pardus
       'team-a_pair_1': ['m-a-1', 'm-a-2'], // Ram Ganesh & Pradheep Gunasekaran
