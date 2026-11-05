@@ -31,7 +31,7 @@ export interface Game {
   category: string; // 'Outdoor', 'Indoor', 'Mind Game', 'Power'
   icon: string; // 'cricket' | 'football' | 'snooker' | 'carrom' | 'chess' | 'tug_of_war' | 'generic'
   status: GameStatus;
-  scheduledTime: string; // e.g. 'Day 1 - 09:30 AM'
+  scheduledTime: string; // event time or free-form schedule label
   venue: string; // e.g. 'Main Oval Arena'
   firstPlaceTeamId?: TeamId | null; // Winner (10 pts)
   secondPlaceTeamId?: TeamId | null; // Runner-up (5 pts)

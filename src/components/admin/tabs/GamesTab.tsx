@@ -13,7 +13,7 @@ export const GamesTab: React.FC = () => {
     category: 'Outdoor Championship',
     icon: 'generic',
     status: 'upcoming' as GameStatus,
-    scheduledTime: 'Day 1 · 10:00 AM',
+    scheduledTime: '10:00 AM',
     venue: 'Arena 1',
     notes: '',
   });
@@ -36,7 +36,7 @@ export const GamesTab: React.FC = () => {
       category: 'Outdoor Championship',
       icon: 'generic',
       status: 'upcoming',
-      scheduledTime: 'Day 1 · 10:00 AM',
+      scheduledTime: '10:00 AM',
       venue: 'Arena 1',
       notes: '',
     });

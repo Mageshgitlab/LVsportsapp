@@ -34,20 +34,22 @@ export const FixturesSlide: React.FC<FixturesSlideProps> = ({
 
   const [activeTieIndex, setActiveTieIndex] = useState(0);
   const [tieElapsedMs, setTieElapsedMs] = useState(0);
+  const completionStartedRef = useRef(false);
 
   // Each tie gets a full 7-second cinematic spotlight. The parent progress bar
   // receives an overall ratio across every tie, so it completes only after the
   // complete fixture queue has been shown.
   const TIE_DURATION_MS = 7000;
 
-  // Track progress and auto-cycle through all fixtures in this slide
+  // Track progress across the complete queue without restarting the timer on
+  // every progress update.
   useEffect(() => {
     if (isPaused || allTies.length === 0) return;
 
     const intervalMs = 50;
     const interval = setInterval(() => {
       setTieElapsedMs((prev) => {
-        const nextVal = prev + intervalMs;
+        const nextVal = Math.min(TIE_DURATION_MS, prev + intervalMs);
 
         // Report overall progress ratio to parent TV dashboard (0 to 1)
         const overallProgress =
@@ -56,26 +58,29 @@ export const FixturesSlide: React.FC<FixturesSlideProps> = ({
           onProgress(overallProgress);
         }
 
-        if (nextVal >= TIE_DURATION_MS) {
-          if (activeTieIndex < allTies.length - 1) {
-            // Advance to next fixture in the queue
-            setActiveTieIndex((idx) => idx + 1);
-            tournamentSound.play('round');
-            return 0;
-          } else {
-            // All fixtures have completed their cycle! Advance to next TV slide
-            if (onComplete) {
-              onComplete();
-            }
-            return 0;
-          }
-        }
         return nextVal;
       });
     }, intervalMs);
 
     return () => clearInterval(interval);
   }, [isPaused, activeTieIndex, allTies.length, onComplete, onProgress]);
+
+  useEffect(() => {
+    if (isPaused || allTies.length === 0 || tieElapsedMs < TIE_DURATION_MS || completionStartedRef.current) return;
+
+    if (activeTieIndex < allTies.length - 1) {
+      setActiveTieIndex((idx) => idx + 1);
+      setTieElapsedMs(0);
+      completionStartedRef.current = false;
+      tournamentSound.play('round');
+      return;
+    }
+
+    // The final fixture has now been displayed for its full duration.
+    completionStartedRef.current = true;
+    onProgress?.(1);
+    onComplete?.();
+  }, [activeTieIndex, allTies.length, isPaused, onComplete, onProgress, tieElapsedMs]);
 
   if (!fixtures || allTies.length === 0) {
     return null;

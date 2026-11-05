@@ -315,8 +315,14 @@ class HybridDataService implements IDataService {
       settings: sanitizedSettings,
       teams: raw.teams && raw.teams.length > 0 ? raw.teams : INITIAL_DATA.teams,
       members: Array.isArray(raw.members) ? raw.members : INITIAL_DATA.members,
-      games: Array.isArray(raw.games) && raw.games.length > 0 ? raw.games : INITIAL_DATA.games,
-      announcements: Array.isArray(raw.announcements) ? raw.announcements : INITIAL_DATA.announcements,
+      games: (Array.isArray(raw.games) && raw.games.length > 0 ? raw.games : INITIAL_DATA.games).map((game) => ({
+        ...game,
+        scheduledTime: (game.scheduledTime || '').replace(/^Day\s+\d+\s*[·•-]\s*/i, '').trim(),
+      })),
+      announcements: (Array.isArray(raw.announcements) ? raw.announcements : INITIAL_DATA.announcements).map((announcement) => ({
+        ...announcement,
+        createdAt: (announcement.createdAt || '').replace(/^Day\s+\d+\s*[·•-]\s*/i, '').trim(),
+      })),
       sponsors: Array.isArray(raw.sponsors) ? raw.sponsors : INITIAL_DATA.sponsors,
       fixtures:
         raw.fixtures && Array.isArray(raw.fixtures.rounds) && raw.fixtures.rounds.length > 0

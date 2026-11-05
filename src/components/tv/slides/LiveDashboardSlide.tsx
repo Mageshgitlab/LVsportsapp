@@ -10,17 +10,6 @@ const SECTION = {
   spotlight: { accent: '#8b5cf6', bar: '#442787', tint: 'rgba(139,92,246,0.07)' },
 };
 
-const FIXTURE_DATE_RANGES: Record<string, [string, string]> = {
-  cricket: ['2026-11-16', '2026-11-20'],
-  volleyball: ['2026-11-23', '2026-11-25'],
-  badminton: ['2026-11-30', '2026-12-03'],
-  football: ['2026-12-06', '2026-12-08'],
-  chess: ['2026-11-16', '2026-11-20'],
-  carrom: ['2026-11-17', '2026-11-18'],
-  snooker: ['2026-11-23', '2026-11-25'],
-  foosball: ['2026-11-30', '2026-12-03'],
-};
-
 export const LiveDashboardSlide: React.FC = () => {
   const { data } = useCarnivalStore();
   const { teams, members, games, fixtures, settings } = data;
@@ -67,60 +56,24 @@ export const LiveDashboardSlide: React.FC = () => {
       ...configured.map((fixture) => fixture.gameId),
       ...legacyRoundFixtures.map((fixture) => fixture.gameId),
     ]);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const toIsoDate = (date: Date) => `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`;
     const missingUpcomingGames = games
       .filter((game) => game.status === 'upcoming' && !configuredGameIds.has(game.id))
       .map((game) => {
-        const range = FIXTURE_DATE_RANGES[game.name.trim().toLowerCase()];
         return {
           id: `schedule-${game.id}`,
           gameId: game.id,
           gameName: game.name,
-          fixtureDate: range?.[0] || toIsoDate(game.scheduledTime.toLowerCase().includes('day 2') ? tomorrow : today),
-          fixtureEndDate: range?.[1],
-          roundLabel: range ? 'Tournament' : game.scheduledTime,
+          fixtureDate: 'TBD',
+          roundLabel: 'Tournament',
           status: game.status,
           notes: game.venue,
         };
       });
-    return [...configured, ...legacyRoundFixtures, ...missingUpcomingGames].sort((a, b) => {
-      if (a.fixtureDate === b.fixtureDate) return a.gameName.localeCompare(b.gameName);
-      return a.fixtureDate.localeCompare(b.fixtureDate);
-    });
+    return [...configured, ...legacyRoundFixtures, ...missingUpcomingGames];
   }, [fixtures?.gameWiseFixtures, fixtures?.gameId, fixtures?.gameName, rounds, teams, games]);
 
-  const dateStamp = (date: Date) => `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`;
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const todayDate = dateStamp(today);
-  const tomorrowDate = dateStamp(tomorrow);
-  const isScheduledOn = (fixture: (typeof gameWiseFixtures)[number], date: string) =>
-    fixture.fixtureDate <= date && (fixture.fixtureEndDate || fixture.fixtureDate) >= date;
-  const todayFixtures = gameWiseFixtures.filter((fixture) => isScheduledOn(fixture, todayDate));
-  const tomorrowFixtures = gameWiseFixtures.filter((fixture) => isScheduledOn(fixture, tomorrowDate));
-  const feedFixtures = gameWiseFixtures.filter((fixture) =>
-    fixture.status !== 'completed' && (
-      fixture.fixtureDate === 'TBD' ||
-      (fixture.fixtureEndDate || fixture.fixtureDate) > tomorrowDate ||
-      (fixture.gameId === fixtures?.gameId && rounds.some((round) => round.ties.length > 0))
-    )
-  );
-  const daySections = todayFixtures.length > 0 || tomorrowFixtures.length > 0
-    ? [
-        ...(todayFixtures.length > 0 ? [{ label: 'TODAY', date: todayDate, items: todayFixtures }] : []),
-        ...(tomorrowFixtures.length > 0 ? [{ label: 'TOMORROW', date: tomorrowDate, items: tomorrowFixtures }] : []),
-      ]
-    : [...new Set(feedFixtures.map((fixture) => fixture.fixtureDate))]
-        .slice(0, 2)
-        .map((date) => ({
-          label: 'UPCOMING',
-          date,
-          items: feedFixtures.filter((fixture) => fixture.fixtureDate === date),
-        }));
+  // Fixtures are intentionally date-agnostic: the event schedule is not fixed yet.
+  const feedFixtures = gameWiseFixtures.filter((fixture) => fixture.status !== 'completed');
 
   const activeSpotlightMembers = useMemo(() => {
     if (!activeSpotlightTeam) return [] as string[];
@@ -291,35 +244,18 @@ export const LiveDashboardSlide: React.FC = () => {
 
           <div className="px-3 py-2 flex items-center justify-between gap-2 shrink-0 border-b border-white/10">
             <span className="text-white font-['Rajdhani'] font-bold uppercase" style={{ fontSize: '19px' }}>
-              TODAY: {todayFixtures.length} FIXTURES
+              {feedFixtures.length} FIXTURES IN ROTATION
             </span>
             <span className="text-white/90 font-['Rajdhani'] font-bold uppercase" style={{ fontSize: '16px' }}>
-              TOMORROW: {tomorrowFixtures.length} FIXTURES · LATER FIXTURES AUTO-ROTATE
+              FULL FIXTURE QUEUE AUTO-ROTATES
             </span>
           </div>
 
           <div className="p-3 flex-1 min-h-0 flex flex-col gap-2">
-            {daySections.length > 0 && <div className="grid grid-cols-2 gap-2 shrink-0">
-              {daySections.map((day) => (
-                <div key={day.label} className="rounded-lg border border-white/15 bg-[#0d1129]/72 px-2 py-1.5 min-w-0">
-                  <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1">
-                    <span className="font-['Rajdhani'] font-black text-cyan-300 uppercase" style={{ fontSize: '16px' }}>{day.label}</span>
-                    <span className="font-['Rajdhani'] font-bold text-slate-300" style={{ fontSize: '18px' }}>{day.date}</span>
-                  </div>
-                  {day.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-1 py-0.5 font-['Rajdhani'] uppercase" style={{ fontSize: '15px' }}>
-                      <span className="text-white font-black truncate">{item.gameName}</span>
-                      <span className="text-slate-400 font-bold truncate">{item.roundLabel}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>}
-
             {currentFixture && <div className="flex-1 min-h-0 rounded-lg border border-white/15 bg-[#0d1129]/72 p-2 flex flex-col overflow-hidden">
               <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1 shrink-0">
                 <span className="font-['Rajdhani'] font-black text-amber-300 uppercase" style={{ fontSize: '16px' }}>Upcoming Feed</span>
-                {currentFixture && <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '18px' }}>{currentFixture.fixtureDate}{currentFixture.fixtureEndDate && currentFixture.fixtureEndDate !== currentFixture.fixtureDate ? ` – ${currentFixture.fixtureEndDate}` : ''} · {currentFixture.roundLabel}</span>}
+                {currentFixture && <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '18px' }}>{currentFixture.roundLabel}</span>}
               </div>
               <div key={currentFixture.id} className="fixture-round-transition flex-1 min-h-0 flex flex-col justify-center">
                   <div className="flex justify-between items-center gap-3">
