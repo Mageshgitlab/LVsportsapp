@@ -279,7 +279,7 @@ export const LiveDashboardSlide: React.FC = () => {
                   return (
                     <div key={tie.id} className="flex items-center justify-between gap-3 rounded border border-white/10 bg-black/25 px-3 py-2 min-h-0">
                       <span className="font-['Rajdhani'] font-bold text-cyan-300 uppercase shrink-0" style={{ fontSize: '18px' }}>{tie.roundTitle} · TIE {tie.tieNumber}</span>
-                      <span className="font-['Rajdhani'] font-black text-white uppercase truncate text-right" style={{ fontSize: '22px' }}>
+                      <span className="font-['Rajdhani'] font-black text-white uppercase text-right leading-tight whitespace-normal break-words" style={{ fontSize: '20px', maxWidth: '68%' }}>
                         {teamA?.name || 'Team A'} <span className="text-amber-300">VS</span> {teamB?.name || 'Team B'}
                       </span>
                     </div>
