@@ -56,19 +56,21 @@ export const LiveDashboardSlide: React.FC = () => {
       ...configured.map((fixture) => fixture.gameId),
       ...legacyRoundFixtures.map((fixture) => fixture.gameId),
     ]);
-    const missingUpcomingGames = games
-      .filter((game) => game.status === 'upcoming' && !configuredGameIds.has(game.id))
-      .map((game) => {
-        return {
-          id: `schedule-${game.id}`,
-          gameId: game.id,
-          gameName: game.name,
-          fixtureDate: 'TBD',
-          roundLabel: 'Tournament',
-          status: game.status,
-          notes: game.venue,
-        };
-      });
+    // Once an admin fixture exists, rotate only that configured fixture queue.
+    // Do not append every upcoming game from the general schedule.
+    const missingUpcomingGames = configured.length === 0 && legacyRoundFixtures.length === 0
+      ? games
+          .filter((game) => game.status === 'upcoming' && !configuredGameIds.has(game.id))
+          .map((game) => ({
+            id: `schedule-${game.id}`,
+            gameId: game.id,
+            gameName: game.name,
+            fixtureDate: 'TBD',
+            roundLabel: 'Tournament',
+            status: game.status,
+            notes: game.venue,
+          }))
+      : [];
     return [...configured, ...legacyRoundFixtures, ...missingUpcomingGames];
   }, [fixtures?.gameWiseFixtures, fixtures?.gameId, fixtures?.gameName, rounds, teams, games]);
 
@@ -265,7 +267,7 @@ export const LiveDashboardSlide: React.FC = () => {
             {fixtureDateSections.length > 0 && <div className="relative shrink-0 overflow-hidden rounded-lg border border-white/15 bg-[#0d1129]/72 py-1.5" aria-label="Upcoming fixtures by date">
               <div className="fixture-date-feed flex w-max items-center gap-2 px-2">
                 {[...fixtureDateSections, ...fixtureDateSections].map((section, copyIndex) => (
-                  <div key={`${section.date}-${copyIndex}`} className="flex items-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-950/30 px-2.5 py-1 whitespace-nowrap">
+                  <div key={`${section.date}-${copyIndex}`} className="flex h-8 items-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-950/30 px-2.5 whitespace-nowrap">
                     <span className="font-['Rajdhani'] font-black text-cyan-300 uppercase" style={{ fontSize: '15px' }}>{section.date}</span>
                     <span className="text-white/50">•</span>
                     <span className="font-['Rajdhani'] font-black text-white uppercase" style={{ fontSize: '15px' }}>
@@ -279,7 +281,7 @@ export const LiveDashboardSlide: React.FC = () => {
             {currentFixture && <div className="flex-1 min-h-0 rounded-lg border border-white/15 bg-[#0d1129]/72 p-2 flex flex-col overflow-hidden">
               <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1 shrink-0">
                 <span className="font-['Rajdhani'] font-black text-amber-300 uppercase" style={{ fontSize: '16px' }}>Upcoming Feed</span>
-                {currentFixture && <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '18px' }}>{currentFixture.fixtureDate !== 'TBD' ? currentFixture.fixtureDate : 'DATE TBD'} · {currentFixture.roundLabel}</span>}
+                <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '18px' }}>CONFIGURED FIXTURE DETAIL</span>
               </div>
               <div key={currentFixture.id} className="fixture-round-transition flex-1 min-h-0 flex flex-col justify-center">
                   <div className="flex justify-between items-center gap-3">

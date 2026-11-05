@@ -181,6 +181,8 @@ body {
 
 .fixture-date-feed {
   animation: fixtureDateFeed 32s linear infinite;
+  min-height: 2rem;
+  will-change: transform;
 }
 
 @keyframes fixtureDateFeed {
