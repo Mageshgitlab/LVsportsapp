@@ -265,7 +265,7 @@ export const LiveDashboardSlide: React.FC = () => {
             {adminFixtureTies.length > 0 && <div className="rounded-lg border border-amber-400/30 bg-[#0d1129]/80 p-2.5 min-h-0 flex-1 flex flex-col overflow-hidden">
               <div className="flex items-center justify-between border-b border-white/10 pb-1 mb-1">
                 <span className="font-['Rajdhani'] font-black text-amber-300 uppercase" style={{ fontSize: '17px' }}>FIXTURES</span>
-                <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '15px' }}>
+                <span className="font-['Rajdhani'] font-black text-amber-200 uppercase" style={{ fontSize: '28px', lineHeight: 1 }}>
                   {fixtures?.gameName || 'Configured Sport'} · {adminFixtureTies.length} TIES
                 </span>
               </div>
