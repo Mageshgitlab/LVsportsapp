@@ -94,25 +94,6 @@ export const LiveDashboardSlide: React.FC = () => {
       .map((member) => member.name);
   }, [activeSpotlightTeam, members]);
 
-  const currentFixture =
-    feedFixtures.length > 0
-      ? feedFixtures[activeFixtureIndex % feedFixtures.length]
-      : null;
-
-  const getFixtureMatchups = (fixture: (typeof gameWiseFixtures)[number]) => {
-    if (!fixtures || fixture.gameId !== fixtures.gameId) return [];
-    const matchingRounds = rounds.filter((round) =>
-      round.title.trim().toLowerCase() === fixture.roundLabel.trim().toLowerCase()
-    );
-    const roundList = matchingRounds.length > 0 ? matchingRounds : rounds;
-    return roundList.flatMap((round) => round.ties.map((tie) => ({
-      id: tie.id,
-      teamA: teams.find((team) => team.id === tie.teamAId),
-      teamB: teams.find((team) => team.id === tie.teamBId),
-      winner: tie.matches.find((match) => match.winnerTeamId)?.winnerTeamId,
-    }))).filter((matchup) => matchup.teamA && matchup.teamB);
-  };
-
   useEffect(() => {
     if (spotlightTeams.length <= 1) return;
 
@@ -263,7 +244,7 @@ export const LiveDashboardSlide: React.FC = () => {
             </span>
           </div>
 
-          <div className="p-3 flex-1 min-h-0 flex flex-col gap-2">
+          <div className="p-3 flex-1 min-h-0 flex flex-col justify-center gap-2">
             {fixtureDateSections.length > 0 && <div className="relative shrink-0 overflow-hidden rounded-lg border border-white/15 bg-[#0d1129]/72 py-1.5" aria-label="Upcoming fixtures by date">
               <div className="fixture-date-feed flex w-max items-center gap-2 px-2">
                 {[...fixtureDateSections, ...fixtureDateSections].map((section, copyIndex) => (
@@ -278,27 +259,6 @@ export const LiveDashboardSlide: React.FC = () => {
               </div>
             </div>}
 
-            {currentFixture && <div className="flex-1 min-h-0 rounded-lg border border-white/15 bg-[#0d1129]/72 p-2 flex flex-col overflow-hidden">
-              <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1 shrink-0">
-                <span className="font-['Rajdhani'] font-black text-amber-300 uppercase" style={{ fontSize: '16px' }}>Upcoming Feed</span>
-                <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '18px' }}>CONFIGURED FIXTURE DETAIL</span>
-              </div>
-              <div key={currentFixture.id} className="fixture-round-transition flex-1 min-h-0 flex flex-col justify-center">
-                  <div className="flex justify-between items-center gap-3">
-                    <div className="min-w-0">
-                      <div className="font-['Rajdhani'] font-black uppercase text-white truncate" style={{ fontSize: '24px' }}>{currentFixture.gameName}</div>
-                      {currentFixture.notes && <div className="font-['Rajdhani'] font-bold text-slate-400 truncate" style={{ fontSize: '14px' }}>{currentFixture.notes}</div>}
-                    </div>
-                    <span className="px-2 py-1 rounded bg-white/10 text-white font-['Rajdhani'] font-black uppercase shrink-0" style={{ fontSize: '13px' }}>{currentFixture.status}</span>
-                  </div>
-                  {getFixtureMatchups(currentFixture).length > 0 && <div className="mt-1 flex-1 min-h-0 flex flex-col justify-evenly border-t border-white/10 pt-1">
-                    {getFixtureMatchups(currentFixture).map((matchup, index) => <div key={matchup.id} className="grid grid-cols-[6rem_1fr] items-center gap-2 rounded bg-black/25 px-2 py-1 font-['Rajdhani'] font-bold uppercase" style={{ fontSize: '18px' }}>
-                      <span className="text-cyan-300">Match {index + 1}</span>
-                      <span className="flex items-center justify-center gap-2"><span className={matchup.winner === matchup.teamA?.id ? 'text-amber-300' : 'text-white'}>{matchup.teamA?.name}</span><span className="text-slate-500">VS</span><span className={matchup.winner === matchup.teamB?.id ? 'text-amber-300' : 'text-white'}>{matchup.teamB?.name}</span></span>
-                    </div>)}
-                  </div>}
-              </div>
-            </div>}
           </div>
         </div>
 
