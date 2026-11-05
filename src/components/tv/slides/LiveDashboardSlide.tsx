@@ -86,6 +86,9 @@ export const LiveDashboardSlide: React.FC = () => {
       date,
       items: feedFixtures.filter((fixture) => fixture.fixtureDate === date),
     }));
+  const adminFixtureTies = rounds.flatMap((round) =>
+    round.ties.map((tie) => ({ ...tie, roundTitle: round.title }))
+  );
 
   const activeSpotlightMembers = useMemo(() => {
     if (!activeSpotlightTeam) return [] as string[];
@@ -256,6 +259,29 @@ export const LiveDashboardSlide: React.FC = () => {
                     </span>
                   </div>
                 ))}
+              </div>
+            </div>}
+
+            {adminFixtureTies.length > 0 && <div className="rounded-lg border border-amber-400/30 bg-[#0d1129]/80 p-2.5 min-h-0 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/10 pb-1 mb-1">
+                <span className="font-['Rajdhani'] font-black text-amber-300 uppercase" style={{ fontSize: '17px' }}>ADMIN FIXTURES</span>
+                <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '15px' }}>
+                  {fixtures?.gameName || 'Configured Sport'} · {adminFixtureTies.length} TIES
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {adminFixtureTies.map((tie) => {
+                  const teamA = teams.find((team) => team.id === tie.teamAId);
+                  const teamB = teams.find((team) => team.id === tie.teamBId);
+                  return (
+                    <div key={tie.id} className="flex items-center justify-between gap-2 rounded border border-white/10 bg-black/25 px-2 py-1">
+                      <span className="font-['Rajdhani'] font-bold text-cyan-300 uppercase" style={{ fontSize: '14px' }}>{tie.roundTitle} · TIE {tie.tieNumber}</span>
+                      <span className="font-['Rajdhani'] font-black text-white uppercase truncate" style={{ fontSize: '16px' }}>
+                        {teamA?.name || 'Team A'} <span className="text-amber-300">VS</span> {teamB?.name || 'Team B'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>}
 
