@@ -247,7 +247,7 @@ export const LiveDashboardSlide: React.FC = () => {
             </span>
           </div>
 
-          <div className="p-3 flex-1 min-h-0 flex flex-col justify-center gap-2">
+          <div className="p-3 flex-1 min-h-0 flex flex-col gap-2">
             {fixtureDateSections.length > 0 && <div className="relative shrink-0 overflow-hidden rounded-lg border border-white/15 bg-[#0d1129]/72 py-1.5" aria-label="Upcoming fixtures by date">
               <div className="fixture-date-feed flex w-max items-center gap-2 px-2">
                 {[...fixtureDateSections, ...fixtureDateSections].map((section, copyIndex) => (
@@ -262,21 +262,24 @@ export const LiveDashboardSlide: React.FC = () => {
               </div>
             </div>}
 
-            {adminFixtureTies.length > 0 && <div className="rounded-lg border border-amber-400/30 bg-[#0d1129]/80 p-2.5 min-h-0 overflow-hidden">
+            {adminFixtureTies.length > 0 && <div className="rounded-lg border border-amber-400/30 bg-[#0d1129]/80 p-2.5 min-h-0 flex-1 flex flex-col overflow-hidden">
               <div className="flex items-center justify-between border-b border-white/10 pb-1 mb-1">
                 <span className="font-['Rajdhani'] font-black text-amber-300 uppercase" style={{ fontSize: '17px' }}>ADMIN FIXTURES</span>
                 <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '15px' }}>
                   {fixtures?.gameName || 'Configured Sport'} · {adminFixtureTies.length} TIES
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div
+                className="grid grid-cols-2 gap-2 flex-1 min-h-0"
+                style={{ gridTemplateRows: `repeat(${Math.ceil(adminFixtureTies.length / 2)}, minmax(0, 1fr))` }}
+              >
                 {adminFixtureTies.map((tie) => {
                   const teamA = teams.find((team) => team.id === tie.teamAId);
                   const teamB = teams.find((team) => team.id === tie.teamBId);
                   return (
-                    <div key={tie.id} className="flex items-center justify-between gap-2 rounded border border-white/10 bg-black/25 px-2 py-1">
-                      <span className="font-['Rajdhani'] font-bold text-cyan-300 uppercase" style={{ fontSize: '14px' }}>{tie.roundTitle} · TIE {tie.tieNumber}</span>
-                      <span className="font-['Rajdhani'] font-black text-white uppercase truncate" style={{ fontSize: '16px' }}>
+                    <div key={tie.id} className="flex items-center justify-between gap-3 rounded border border-white/10 bg-black/25 px-3 py-2 min-h-0">
+                      <span className="font-['Rajdhani'] font-bold text-cyan-300 uppercase shrink-0" style={{ fontSize: '18px' }}>{tie.roundTitle} · TIE {tie.tieNumber}</span>
+                      <span className="font-['Rajdhani'] font-black text-white uppercase truncate text-right" style={{ fontSize: '22px' }}>
                         {teamA?.name || 'Team A'} <span className="text-amber-300">VS</span> {teamB?.name || 'Team B'}
                       </span>
                     </div>
