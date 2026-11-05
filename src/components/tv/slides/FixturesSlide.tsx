@@ -35,8 +35,10 @@ export const FixturesSlide: React.FC<FixturesSlideProps> = ({
   const [activeTieIndex, setActiveTieIndex] = useState(0);
   const [tieElapsedMs, setTieElapsedMs] = useState(0);
 
-  // Each tie gets 5 seconds of cinematic spotlight
-  const TIE_DURATION_MS = 5000;
+  // Each tie gets a full 7-second cinematic spotlight. The parent progress bar
+  // receives an overall ratio across every tie, so it completes only after the
+  // complete fixture queue has been shown.
+  const TIE_DURATION_MS = 7000;
 
   // Track progress and auto-cycle through all fixtures in this slide
   useEffect(() => {

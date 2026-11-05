@@ -11,11 +11,11 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ onSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const { setAdminAuthenticated } = useCarnivalStore();
+  const configuredPasscode = import.meta.env.VITE_ADMIN_PASSCODE?.trim() || '';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Static password gate "lv2026"
-    if (password.trim() === 'lv2026') {
+    if (configuredPasscode && password.trim() === configuredPasscode) {
       setAdminAuthenticated(true);
       onSuccess();
     } else {
@@ -58,7 +58,7 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ onSuccess }) => {
                   setPassword(e.target.value);
                   setError(false);
                 }}
-                placeholder="Enter passcode (lv2026)"
+                placeholder="Enter admin passcode"
                 autoFocus
                 className={`w-full pl-10 pr-4 py-3 bg-black/60 border-2 rounded-lg text-white placeholder-slate-500 focus:outline-none transition-all font-mono text-sm ${
                   error
@@ -69,7 +69,7 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ onSuccess }) => {
             </div>
             {error && (
               <p className="text-xs font-bold text-red-400 mt-2 font-['Rajdhani']">
-                Access Denied! Incorrect passcode. (Default: lv2026)
+                {configuredPasscode ? 'Access denied. Check the admin passcode.' : 'Admin access is not configured.'}
               </p>
             )}
           </div>
@@ -83,7 +83,7 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ onSuccess }) => {
           </button>
 
           <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 font-['Rajdhani'] font-bold">
-            <span>Passcode: <code className="text-cyan-400 font-mono">lv2026</code></span>
+            <span className="text-slate-500">Admin access is protected.</span>
             <a
               href="#/tv"
               className="text-cyan-400 hover:text-white flex items-center gap-1 font-['Rajdhani']"

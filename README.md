@@ -20,7 +20,7 @@ A broadcast-grade TV dashboard and administrative control portal styled with a f
     - `Left Arrow`: Previous slide
     - `Right Arrow`: Next slide
 - **Admin Portal**: `/#/admin`
-  - Protected with passcode gate: **`lv2026`**
+  - Protected with the `VITE_ADMIN_PASSCODE` deployment secret
   - Tabs: Teams, Members, Games, Results, Announcements, **Theme & FX**, Settings
   - Theme Tab: sound on/off, volume slider, sound test buttons, effect intensity (low / medium / high), plain dark fallback toggle
   - Interactive 16:9 TV Simulation Live Preview
@@ -85,5 +85,6 @@ npm run deploy
 
 ---
 
-## 🔐 Admin Passcode
-- **Passcode**: `lv2026`
+## 🔐 Admin Access
+- Configure `VITE_ADMIN_PASSCODE` through the local environment or GitHub Actions secret.
+- Never commit the passcode to source control or display it in the admin UI.

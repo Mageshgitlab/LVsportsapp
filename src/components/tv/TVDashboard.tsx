@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useCarnivalStore, getEligibleSlides } from '../../store/carnivalStore';
 import { TVScaleWrapper } from './TVScaleWrapper';
 import { TVHeader } from './TVHeader';
@@ -67,6 +67,17 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
 
   // Theme Settings
   const [themeSettings, setThemeSettings] = useState(getStoredThemeSettings());
+
+  const handleFixturesComplete = useCallback(() => {
+    // A complete fixture run starts the playlist from the first slide.
+    goToSlide(0);
+    setElapsedMs(0);
+    setFixturesProgressRatio(0);
+  }, [goToSlide]);
+
+  const handleFixturesProgress = useCallback((ratio: number) => {
+    setFixturesProgressRatio(ratio);
+  }, []);
 
   useEffect(() => {
     const handleThemeChange = (e: any) => {
@@ -178,14 +189,8 @@ export const TVDashboard: React.FC<TVDashboardProps> = ({ isEmbedded = false }) 
             <SlideRenderer
               slideId={currentSlideConfig.id}
               isPaused={isPaused}
-              onFixturesComplete={() => {
-                nextSlide();
-                setElapsedMs(0);
-                setFixturesProgressRatio(0);
-              }}
-              onFixturesProgress={(ratio) => {
-                setFixturesProgressRatio(ratio);
-              }}
+              onFixturesComplete={handleFixturesComplete}
+              onFixturesProgress={handleFixturesProgress}
             />
           </div>
         )}
