@@ -72,8 +72,18 @@ export const LiveDashboardSlide: React.FC = () => {
     return [...configured, ...legacyRoundFixtures, ...missingUpcomingGames];
   }, [fixtures?.gameWiseFixtures, fixtures?.gameId, fixtures?.gameName, rounds, teams, games]);
 
-  // Fixtures are intentionally date-agnostic: the event schedule is not fixed yet.
+  // Day labels are unknown, but configured fixture dates remain visible.
   const feedFixtures = gameWiseFixtures.filter((fixture) => fixture.status !== 'completed');
+  const fixtureDateSections = [...new Set(
+    feedFixtures
+      .map((fixture) => fixture.fixtureDate)
+      .filter((date) => date && date !== 'TBD')
+  )]
+    .sort()
+    .map((date) => ({
+      date,
+      items: feedFixtures.filter((fixture) => fixture.fixtureDate === date),
+    }));
 
   const activeSpotlightMembers = useMemo(() => {
     if (!activeSpotlightTeam) return [] as string[];
@@ -244,18 +254,35 @@ export const LiveDashboardSlide: React.FC = () => {
 
           <div className="px-3 py-2 flex items-center justify-between gap-2 shrink-0 border-b border-white/10">
             <span className="text-white font-['Rajdhani'] font-bold uppercase" style={{ fontSize: '19px' }}>
-              {feedFixtures.length} FIXTURES IN ROTATION
+              {feedFixtures.length} UPCOMING FIXTURES
             </span>
             <span className="text-white/90 font-['Rajdhani'] font-bold uppercase" style={{ fontSize: '16px' }}>
-              FULL FIXTURE QUEUE AUTO-ROTATES
+              {fixtureDateSections.length} SCHEDULED DATES · FULL QUEUE AUTO-ROTATES
             </span>
           </div>
 
           <div className="p-3 flex-1 min-h-0 flex flex-col gap-2">
+            {fixtureDateSections.length > 0 && <div className="grid grid-cols-2 gap-2 shrink-0 max-h-32 overflow-y-auto">
+              {fixtureDateSections.map((section) => (
+                <div key={section.date} className="rounded-lg border border-white/15 bg-[#0d1129]/72 px-2 py-1.5 min-w-0">
+                  <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1">
+                    <span className="font-['Rajdhani'] font-black text-cyan-300 uppercase" style={{ fontSize: '16px' }}>UPCOMING</span>
+                    <span className="font-['Rajdhani'] font-bold text-slate-300" style={{ fontSize: '18px' }}>{section.date}</span>
+                  </div>
+                  {section.items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between gap-1 py-0.5 font-['Rajdhani'] uppercase" style={{ fontSize: '15px' }}>
+                      <span className="text-white font-black truncate">{item.gameName}</span>
+                      <span className="text-slate-400 font-bold truncate">{item.roundLabel}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>}
+
             {currentFixture && <div className="flex-1 min-h-0 rounded-lg border border-white/15 bg-[#0d1129]/72 p-2 flex flex-col overflow-hidden">
               <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1 shrink-0">
                 <span className="font-['Rajdhani'] font-black text-amber-300 uppercase" style={{ fontSize: '16px' }}>Upcoming Feed</span>
-                {currentFixture && <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '18px' }}>{currentFixture.roundLabel}</span>}
+                {currentFixture && <span className="font-['Rajdhani'] font-bold text-slate-300 uppercase" style={{ fontSize: '18px' }}>{currentFixture.fixtureDate !== 'TBD' ? currentFixture.fixtureDate : 'DATE TBD'} · {currentFixture.roundLabel}</span>}
               </div>
               <div key={currentFixture.id} className="fixture-round-transition flex-1 min-h-0 flex flex-col justify-center">
                   <div className="flex justify-between items-center gap-3">
