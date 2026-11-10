@@ -7,7 +7,8 @@ import { motion } from 'motion/react';
 
 export const ScheduleSlide: React.FC = () => {
   const { data } = useCarnivalStore();
-  const { games, teams } = data;
+  const { games, teams, fixtureRecords } = data;
+  const scheduledGames = games.filter((game) => fixtureRecords.some((fixture) => fixture.gameId === game.id));
 
   const getTeam = (teamId?: string | null) => {
     if (!teamId) return null;
@@ -36,18 +37,22 @@ export const ScheduleSlide: React.FC = () => {
           <span className="text-slate-600">·</span>
           <div className="flex items-center gap-1.5 text-cyan-300">
             <Calendar className="w-4 h-4 text-cyan-400" />
-            <span>8 SPORTING EVENTS</span>
+            <span>{scheduledGames.length} SPORTING EVENTS</span>
           </div>
         </div>
       </div>
 
       {/* Games Grid: 4 columns x 2 rows filling full height */}
       <div className="grid grid-cols-4 gap-4 flex-1 my-3 items-stretch min-h-0">
-        {games.map((game, idx) => {
+        {scheduledGames.map((game, idx) => {
+          const gameFixtures = fixtureRecords.filter((fixture) => fixture.gameId === game.id);
+          const liveFixture = gameFixtures.find((fixture) => fixture.status === 'live');
+          const completedFixture = gameFixtures.find((fixture) => fixture.status === 'completed');
+          const fixtureWinner = completedFixture?.result?.winnerSide === 'A' ? completedFixture.sideA.teamId : completedFixture?.result?.winnerSide === 'B' ? completedFixture.sideB.teamId : null;
           const winner = getTeam(game.firstPlaceTeamId);
-          const isLive = game.status === 'live';
-          const isCompleted = game.status === 'completed';
-          const isUpcoming = game.status === 'upcoming';
+          const isLive = !!liveFixture;
+          const isCompleted = !!completedFixture;
+          const isUpcoming = !isLive && !isCompleted;
           const winnerStyle = winner ? TEAM_STYLES[winner.id] : null;
 
           return (
@@ -136,16 +141,16 @@ export const ScheduleSlide: React.FC = () => {
 
               {/* Card Bottom: Victor or Points Allocation */}
               <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-xs font-['Rajdhani']">
-                {isCompleted && winner ? (
+                {isCompleted && (winner || fixtureWinner) ? (
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-[10px] font-black text-amber-400 uppercase font-['Rajdhani']">
                       WINNER:
                     </span>
                     <span
                       className="px-2 py-0.2 rounded font-black text-slate-950 text-[11px] uppercase truncate"
-                      style={{ backgroundColor: winnerStyle?.primaryColor || winner.color }}
+                      style={{ backgroundColor: winnerStyle?.primaryColor || winner?.color || '#F59E0B' }}
                     >
-                      {winner.name} (10 pts)
+                      {getTeam(fixtureWinner || winner?.id)?.name} (10 pts)
                     </span>
                   </div>
                 ) : (

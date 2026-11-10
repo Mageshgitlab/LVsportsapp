@@ -1,5 +1,5 @@
-import { CarnivalData } from '../types';
 import { INITIAL_DATA } from '../data/seed';
+import { CarnivalData } from '../types';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 
 const STORAGE_KEY = 'lv_sports_carnival_data_v2';
@@ -164,8 +164,13 @@ class HybridDataService implements IDataService {
   }
 
   subscribeToChanges(onUpdate: (data: CarnivalData) => void): () => void {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY || !event.newValue) return;
+      try { onUpdate(this.sanitizeData(JSON.parse(event.newValue) as CarnivalData)); } catch { /* ignore malformed external updates */ }
+    };
+    window.addEventListener('storage', onStorage);
     const supabase = getSupabaseClient();
-    if (!supabase) return () => {};
+    if (!supabase) return () => window.removeEventListener('storage', onStorage);
 
     try {
       if (this.realtimeChannel) {
@@ -188,6 +193,7 @@ class HybridDataService implements IDataService {
         .subscribe();
 
       return () => {
+        window.removeEventListener('storage', onStorage);
         if (this.realtimeChannel) {
           supabase.removeChannel(this.realtimeChannel);
           this.realtimeChannel = null;
@@ -315,8 +321,17 @@ class HybridDataService implements IDataService {
       settings: sanitizedSettings,
       teams: raw.teams && raw.teams.length > 0 ? raw.teams : INITIAL_DATA.teams,
       members: Array.isArray(raw.members) ? raw.members : INITIAL_DATA.members,
-      games: (Array.isArray(raw.games) && raw.games.length > 0 ? raw.games : INITIAL_DATA.games).map((game) => ({
+      games: (Array.isArray(raw.games) && raw.games.length > 0 ? raw.games : INITIAL_DATA.games).map((game: any) => ({
         ...game,
+        type: (['football', 'volleyball', 'cricket'].includes((game.name || '').trim().toLowerCase()) ? 'group' : (game.type || 'pair')),
+        playersPerSide: game.playersPerSide || (game.type === 'group' ? game.squadSize || 1 : 2),
+        squadSize: game.squadSize || (game.type === 'group' ? 1 : undefined),
+        maxSubs: game.maxSubs ?? (game.type === 'group' ? 3 : undefined),
+        format: game.format || 'round_robin',
+        pairSize: game.pairSize || (game.playersPerSide === 1 ? 1 : 2),
+        maxPairsPerTeam: game.maxPairsPerTeam,
+        playersCount: game.playersCount || game.squadSize || (game.type === 'group' ? 1 : undefined),
+        subsCount: game.subsCount ?? game.maxSubs ?? (game.type === 'group' ? 0 : undefined),
         scheduledTime: (game.scheduledTime || '').replace(/^Day\s+\d+\s*[·•-]\s*/i, '').trim(),
       })),
       announcements: (Array.isArray(raw.announcements) ? raw.announcements : INITIAL_DATA.announcements).map((announcement) => ({
@@ -324,10 +339,11 @@ class HybridDataService implements IDataService {
         createdAt: (announcement.createdAt || '').replace(/^Day\s+\d+\s*[·•-]\s*/i, '').trim(),
       })),
       sponsors: Array.isArray(raw.sponsors) ? raw.sponsors : INITIAL_DATA.sponsors,
-      fixtures:
-        raw.fixtures && Array.isArray(raw.fixtures.rounds) && raw.fixtures.rounds.length > 0
-          ? raw.fixtures
-          : INITIAL_DATA.fixtures,
+      // Legacy round/tie fixtures are intentionally discarded. New fixtures live in fixtureRecords.
+      fixtures: INITIAL_DATA.fixtures,
+      registrations: Array.isArray((raw as any).registrations) ? (raw as any).registrations : [],
+      fixtureRecords: Array.isArray((raw as any).fixtureRecords) ? (raw as any).fixtureRecords : [],
+      participatingTeams: (raw as any).participatingTeams && typeof (raw as any).participatingTeams === 'object' ? (raw as any).participatingTeams : {},
     };
   }
 

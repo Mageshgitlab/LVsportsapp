@@ -19,11 +19,13 @@ import {
   FixtureMode,
   GroupFixtureFormat,
   GameWiseFixture,
+  Registration,
+  FixtureRecord,
 } from '../types';
 import { dataService } from '../services/dataService';
 import { INITIAL_DATA } from '../data/seed';
 
-const PAIR_GAME_NAMES = new Set(['carrom', 'foosball', 'batmitoon', 'badminton', 'snooker', 'cricket']);
+const PAIR_GAME_NAMES = new Set(['carrom', 'foosball', 'badminton', 'snooker', 'chess']);
 
 const inferFixtureMode = (gameName: string): FixtureMode => {
   const normalized = (gameName || '').trim().toLowerCase();
@@ -31,6 +33,7 @@ const inferFixtureMode = (gameName: string): FixtureMode => {
   if (PAIR_GAME_NAMES.has(normalized)) return 'pair';
   return 'pair';
 };
+const isGroupGame = (game: Game) => game.type === 'group' || ['cricket', 'football', 'volleyball'].includes((game.name || '').trim().toLowerCase());
 
 export function calculateLeaderboard(teams: Team[], games: Game[]): TeamScoreStat[] {
   const statsMap = new Map<string, { first: number; second: number; played: number; points: number }>();
@@ -109,7 +112,7 @@ export function getEligibleSlides(data: CarnivalData): SlideConfig[] {
       case 'team_d':
         return false;
       case 'fixtures':
-        return !!data.fixtures && Array.isArray(data.fixtures.rounds) && data.fixtures.rounds.length > 0;
+        return true;
       default:
         return true;
     }
@@ -141,6 +144,16 @@ interface CarnivalStoreState {
   updateGame: (gameId: string, updates: Partial<Game>) => Promise<void>;
   deleteGame: (gameId: string) => Promise<void>;
   setGameResults: (gameId: string, firstPlaceTeamId: TeamId | null, secondPlaceTeamId: TeamId | null) => Promise<void>;
+
+  // New fixture workspace actions
+  saveRegistration: (registration: Registration) => Promise<{ success: boolean; error?: string }>;
+  setParticipatingTeams: (gameId: string, teamIds: TeamId[]) => Promise<void>;
+  generateFixtures: (gameId: string) => Promise<void>;
+  addFixtureRecord: (fixture: Omit<FixtureRecord, 'id'>) => Promise<void>;
+  updateFixtureRecord: (id: string, patch: Partial<FixtureRecord>) => Promise<{ success: boolean; error?: string }>;
+  deleteFixtureRecord: (id: string) => Promise<void>;
+  setFixtureResult: (id: string, result: FixtureRecord['result']) => Promise<{ success: boolean; error?: string }>;
+  resetFixturesForGame: (gameId: string) => Promise<void>;
 
   // Fixtures actions
   updatePairMatch: (roundNumber: number, tieId: string, matchId: string, patch: Partial<PairMatch>) => Promise<void>;
@@ -198,7 +211,7 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
   activeSlideIndex: 0,
   isPaused: false,
   timeRemainingMs: 5000,
-  adminAuthenticated: false,
+  adminAuthenticated: typeof window !== 'undefined' && localStorage.getItem('lv_sports_admin_authenticated') === 'true',
 
   initialize: async () => {
     try {
@@ -222,6 +235,10 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
   },
 
   setAdminAuthenticated: (auth: boolean) => {
+    if (typeof window !== 'undefined') {
+      if (auth) localStorage.setItem('lv_sports_admin_authenticated', 'true');
+      else localStorage.removeItem('lv_sports_admin_authenticated');
+    }
     set({ adminAuthenticated: auth });
   },
 
@@ -334,6 +351,62 @@ export const useCarnivalStore = create<CarnivalStoreState>((set, get) => ({
     await dataService.saveData(updated);
     set({ data: updated });
   },
+
+  saveRegistration: async (registration) => {
+    const current = get().data;
+    const game = current.games.find((g) => g.id === registration.gameId);
+    if (!game) return { success: false, error: 'Game not found.' };
+    const memberIds = isGroupGame(game)
+      ? [...(registration.playerIds || []), ...(registration.substituteIds || [])]
+      : (registration.pairs || []).flatMap((p) => p.memberIds);
+    if (memberIds.some((id) => !current.members.some((m) => m.id === id && m.teamId === registration.teamId))) {
+      return { success: false, error: `${game.name} · ${registration.teamId}: every member must belong to this team.` };
+    }
+    if (isGroupGame(game)) {
+      const players = registration.playerIds || [];
+      const subs = registration.substituteIds || [];
+      if (new Set([...players, ...subs]).size !== players.length + subs.length) return { success: false, error: 'A member cannot be both a player and a substitute.' };
+      const playersCount = game.playersCount ?? game.squadSize;
+      const subsCount = game.subsCount ?? game.maxSubs;
+      if (playersCount !== undefined && players.length > playersCount) return { success: false, error: `${game.name} · ${registration.teamId}: playing members exceed the limit of ${playersCount}.` };
+      if (subsCount !== undefined && subs.length > subsCount) return { success: false, error: `${game.name} · ${registration.teamId}: substitutes exceed the limit of ${subsCount}.` };
+    } else {
+      const pairs = registration.pairs || [];
+      const ids = pairs.flatMap((p) => p.memberIds);
+      if (new Set(ids).size !== ids.length) return { success: false, error: 'A member cannot be in two pairs of the same game.' };
+      if (pairs.some((p) => p.memberIds.length !== (game.pairSize || game.playersPerSide || 2))) return { success: false, error: `Each pair needs ${game.pairSize || game.playersPerSide || 2} member(s).` };
+    }
+    const registrations = [...(current.registrations || []).filter((r) => !(r.gameId === registration.gameId && r.teamId === registration.teamId)), registration];
+    const updated = { ...current, registrations };
+    await dataService.saveData(updated); set({ data: updated }); return { success: true };
+  },
+
+  setParticipatingTeams: async (gameId, teamIds) => {
+    const current = get().data;
+    const updated = { ...current, participatingTeams: { ...(current.participatingTeams || {}), [gameId]: teamIds } };
+    await dataService.saveData(updated); set({ data: updated });
+  },
+
+  generateFixtures: async (gameId) => {
+    const current = get().data; const game = current.games.find((g) => g.id === gameId); if (!game) return;
+    const regs = (current.registrations || []).filter((r) => r.gameId === gameId);
+    const matches: FixtureRecord[] = [];
+    for (let i = 0; i < regs.length; i++) for (let j = i + 1; j < regs.length; j++) {
+      if (isGroupGame(game)) matches.push({ id: `fixture-${Date.now()}-${i}-${j}`, gameId, round: 'Round 1', sideA: { teamId: regs[i].teamId }, sideB: { teamId: regs[j].teamId }, date: '', time: '', venue: '', status: 'upcoming' });
+      else {
+        const a = regs[i].pairs || []; const b = regs[j].pairs || []; const count = Math.max(a.length, b.length);
+        for (let k = 0; k < count; k++) if (a[k] && b[k]) matches.push({ id: `fixture-${Date.now()}-${i}-${j}-${k}`, gameId, round: 'Round 1', sideA: { teamId: regs[i].teamId, pairId: a[k].id }, sideB: { teamId: regs[j].teamId, pairId: b[k].id }, date: '', time: '', venue: '', status: 'upcoming' });
+      }
+    }
+    const updated = { ...current, fixtureRecords: [...(current.fixtureRecords || []).filter((f) => f.gameId !== gameId), ...matches] };
+    await dataService.saveData(updated); set({ data: updated });
+  },
+
+  addFixtureRecord: async (fixture) => { const updated = { ...get().data, fixtureRecords: [...(get().data.fixtureRecords || []), { ...fixture, id: `fixture-${Date.now()}` }] }; await dataService.saveData(updated); set({ data: updated }); },
+  updateFixtureRecord: async (id, patch) => { const current = get().data; const next = (current.fixtureRecords || []).map((f) => f.id === id ? { ...f, ...patch } : f); const clash = next.find((f) => f.id === id && f.date && f.time && next.some((o) => o.id !== f.id && o.date === f.date && o.time === f.time && (o.venue === f.venue || o.sideA.teamId === f.sideA.teamId || o.sideA.teamId === f.sideB.teamId || o.sideB.teamId === f.sideA.teamId || o.sideB.teamId === f.sideB.teamId))); if (clash) return { success: false, error: 'Schedule clash: venue or team is already booked at this time.' }; const updated = { ...current, fixtureRecords: next }; await dataService.saveData(updated); set({ data: updated }); return { success: true }; },
+  deleteFixtureRecord: async (id) => { const updated = { ...get().data, fixtureRecords: (get().data.fixtureRecords || []).filter((f) => f.id !== id) }; await dataService.saveData(updated); set({ data: updated }); },
+  setFixtureResult: async (id, result) => { const current = get().data; const fixture = (current.fixtureRecords || []).find((f) => f.id === id); if (!fixture) return { success: false, error: 'Fixture not found.' }; const updatedRecords = current.fixtureRecords.map((f) => f.id === id ? { ...f, result, status: result?.winnerSide ? 'completed' as const : 'upcoming' as const } : f); const winners = updatedRecords.filter((f) => f.gameId === fixture.gameId && f.result?.winnerSide && f.result.winnerSide !== 'draw').map((f) => f.result!.winnerSide === 'A' ? f.sideA.teamId : f.sideB.teamId).filter((team, index, all) => all.indexOf(team) === index); const updatedGames = current.games.map((g) => g.id === fixture.gameId ? { ...g, firstPlaceTeamId: winners[0] || null, secondPlaceTeamId: winners[1] || null, status: winners.length > 1 ? 'completed' as GameStatus : winners.length ? 'live' as GameStatus : 'upcoming' as GameStatus } : g); const winner = result?.winnerSide === 'A' ? fixture.sideA.teamId : result?.winnerSide === 'B' ? fixture.sideB.teamId : null; const announcement = result?.winnerSide && winner ? { id: `ann-${Date.now()}`, title: 'Fixture result', message: `${current.teams.find((t) => t.id === winner)?.name || 'Team'} won ${current.games.find((g) => g.id === fixture.gameId)?.name || 'the match'}.`, category: 'celebration' as const, active: true, createdAt: new Date().toISOString() } : null; const updated = { ...current, fixtureRecords: updatedRecords, games: updatedGames, announcements: announcement ? [...current.announcements, announcement] : current.announcements }; await dataService.saveData(updated); set({ data: updated }); return { success: true }; },
+  resetFixturesForGame: async (gameId) => { const current = get().data; const participatingTeams = { ...(current.participatingTeams || {}) }; delete participatingTeams[gameId]; const updated = { ...current, fixtureRecords: (current.fixtureRecords || []).filter((f) => f.gameId !== gameId), registrations: (current.registrations || []).filter((r) => r.gameId !== gameId), participatingTeams }; await dataService.saveData(updated); set({ data: updated }); },
 
   updatePairMatch: async (roundNumber, tieId, matchId, patch) => {
     const current = get().data;

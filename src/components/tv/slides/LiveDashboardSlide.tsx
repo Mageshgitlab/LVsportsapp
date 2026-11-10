@@ -52,27 +52,10 @@ export const LiveDashboardSlide: React.FC = () => {
         }`,
       }))
     );
-    const configuredGameIds = new Set([
-      ...configured.map((fixture) => fixture.gameId),
-      ...legacyRoundFixtures.map((fixture) => fixture.gameId),
-    ]);
     // Once an admin fixture exists, rotate only that configured fixture queue.
     // Do not append every upcoming game from the general schedule.
-    const missingUpcomingGames = configured.length === 0 && legacyRoundFixtures.length === 0
-      ? games
-          .filter((game) => game.status === 'upcoming' && !configuredGameIds.has(game.id))
-          .map((game) => ({
-            id: `schedule-${game.id}`,
-            gameId: game.id,
-            gameName: game.name,
-            fixtureDate: 'TBD',
-            roundLabel: 'Tournament',
-            status: game.status,
-            notes: game.venue,
-          }))
-      : [];
-    return [...configured, ...legacyRoundFixtures, ...missingUpcomingGames];
-  }, [fixtures?.gameWiseFixtures, fixtures?.gameId, fixtures?.gameName, rounds, teams, games]);
+    return [...configured, ...legacyRoundFixtures];
+  }, [fixtures?.gameWiseFixtures, fixtures?.gameId, fixtures?.gameName, rounds, teams]);
 
   // Day labels are unknown, but configured fixture dates remain visible.
   const feedFixtures = gameWiseFixtures.filter((fixture) => fixture.status !== 'completed');
@@ -287,6 +270,14 @@ export const LiveDashboardSlide: React.FC = () => {
                 })}
               </div>
             </div>}
+
+            {feedFixtures.length === 0 && adminFixtureTies.length === 0 && (
+              <div className="flex flex-1 items-center justify-center text-center">
+                <span className="font-['Rajdhani'] font-black uppercase tracking-widest text-white" style={{ fontSize: '28px' }}>
+                  Fixtures coming soon
+                </span>
+              </div>
+            )}
 
           </div>
         </div>

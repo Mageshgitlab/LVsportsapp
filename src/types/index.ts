@@ -36,6 +36,15 @@ export interface Game {
   firstPlaceTeamId?: TeamId | null; // Winner (10 pts)
   secondPlaceTeamId?: TeamId | null; // Runner-up (5 pts)
   notes?: string;
+  type?: FixtureMode;
+  playersPerSide?: number;
+  squadSize?: number;
+  maxSubs?: number;
+  format?: 'round_robin' | 'knockout' | 'manual';
+  pairSize?: 1 | 2;
+  maxPairsPerTeam?: number;
+  playersCount?: number;
+  subsCount?: number;
 }
 
 export interface Announcement {
@@ -152,6 +161,29 @@ export interface GameFixtures {
   rounds: FixtureRound[];
 }
 
+export interface Registration {
+  gameId: string;
+  teamId: TeamId;
+  pairs?: { id: string; label?: string; memberIds: string[] }[];
+  playerIds?: string[];
+  substituteIds?: string[];
+}
+
+export type FixtureStatus = 'upcoming' | 'live' | 'completed' | 'postponed';
+
+export interface FixtureRecord {
+  id: string;
+  gameId: string;
+  round: string;
+  sideA: { teamId: TeamId; pairId?: string };
+  sideB: { teamId: TeamId; pairId?: string };
+  date: string;
+  time: string;
+  venue: string;
+  status: FixtureStatus;
+  result?: { winnerSide: 'A' | 'B' | 'draw' | null; scoreA?: string; scoreB?: string };
+}
+
 export interface CarnivalData {
   settings: CarnivalSettings;
   teams: Team[];
@@ -160,4 +192,7 @@ export interface CarnivalData {
   announcements: Announcement[];
   sponsors: Sponsor[];
   fixtures: GameFixtures;
+  registrations: Registration[];
+  fixtureRecords: FixtureRecord[];
+  participatingTeams: Record<string, TeamId[]>;
 }

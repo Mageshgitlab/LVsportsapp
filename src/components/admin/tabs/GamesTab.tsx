@@ -16,6 +16,11 @@ export const GamesTab: React.FC = () => {
     scheduledTime: '10:00 AM',
     venue: 'Arena 1',
     notes: '',
+    type: 'pair' as const,
+    playersPerSide: 2,
+    squadSize: 2,
+    maxSubs: 0,
+    format: 'round_robin' as const,
   });
 
   const [editingGameId, setEditingGameId] = useState<string | null>(null);
@@ -39,6 +44,7 @@ export const GamesTab: React.FC = () => {
       scheduledTime: '10:00 AM',
       venue: 'Arena 1',
       notes: '',
+      type: 'pair', playersPerSide: 2, squadSize: 2, maxSubs: 0, format: 'round_robin',
     });
     setIsAdding(false);
   };
@@ -112,6 +118,13 @@ export const GamesTab: React.FC = () => {
                 required
                 className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-orange-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Fixture Type</label>
+              <select value={newGame.type} onChange={(e) => setNewGame({ ...newGame, type: e.target.value as any })} className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-sm text-white">
+                <option value="pair">Pair (pairs / singles)</option><option value="group">Group (squad)</option>
+              </select>
             </div>
 
             <div>
